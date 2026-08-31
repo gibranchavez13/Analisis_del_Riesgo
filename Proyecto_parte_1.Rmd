@@ -95,7 +95,7 @@ importante al comportamiento del mercado mundial del cobre.
 ## 2.2 Líneas de negocio y generación de ingresos
 
 | División | Actividades y activos principales | Lectura económica |
-|----|----|----|
+|-------------------|---------------------------------|--------------------|
 | **Minería** | Exploración, extracción, concentración, fundición y refinación de cobre, molibdeno, zinc, plata, oro y plomo. Operaciones de Southern Copper, Minera México y ASARCO. | Principal fuente de ingresos y EBITDA; alta exposición a precios de metales. |
 | **Transportes** | Ferromex, Ferrosur, Texas Pacifico y Florida East Coast Railway; transporte ferroviario de carga y conexiones con corredores de Norteamérica. | Flujos más vinculados al comercio y la actividad industrial; concesiones y CAPEX intensivos. |
 | **Infraestructura** | Generación eléctrica, construcción, ingeniería, perforación, proyectos y actividades inmobiliarias. | Diversificación parcial y soporte a activos estratégicos; menor peso consolidado. |
@@ -166,7 +166,7 @@ estadounidenses, a partir de esos datos calculamos los indicadores
 necesarios para comparar el desempeño de la empresa entre 2023 y 2025.
 
 | Indicador | 2023 | 2024 | 2025 | Var. 24/23 | Var. 25/24 |
-|----|----|----|----|----|----|
+|------------|------------|------------|------------|------------|------------|
 | **Ingresos** | 14,366.9 | 16,169.5 | **18,176.7** | +12.5% | +12.4% |
 | **Utilidad bruta** | 6,196.0 | 7,215.8 | **9,016.2** | +16.5% | +24.9% |
 | **Margen bruto** | 43.1% | 44.6% | **49.6%** | +1.5 pp | +5.0 pp |
@@ -243,7 +243,7 @@ en las variaciones de precios y divisas que afectan los flujos.
 
 ::: {style="text-align: justify;"}
 | Indicador | Fórmula / definición | Valor reciente | Interpretación |
-|----|----|----|----|
+|------------------|------------------|------------------|-------------------|
 | **ROE** | Utilidad neta / capital contable | 27.07% | Rentabilidad elevada sobre el patrimonio; puede normalizarse si cae el cobre. |
 | **ROA** | Utilidad neta / activos totales | 16.08% | Retorno sólido para un negocio intensivo en minas, plantas y vías. |
 | **Deuda/capital** | Deuda total / capital contable | 0.42x | Apalancamiento moderado; no domina el perfil de riesgo. |
@@ -356,7 +356,7 @@ accionista, pero no como una obligación fija comparable con el cupón de
 un bono.
 
 | Periodo | Dividendos observados (MXN/acción) | Lectura |
-|----|----|----|
+|------------------|--------------------------------|----------------------|
 | **2023** | 1.00; 1.00; 0.80; 1.00 (total aproximado: 3.80) | Distribución trimestral estable. |
 | **2024** | 0.80; 1.00; 1.20; 1.30 (total aproximado: 4.30) | Crecimiento respecto a 2023. |
 | **2025** | 1.10 en febrero; 1.20 anunciado para mayo; pagos posteriores sujetos a acuerdos | Continuidad de la política y relación con resultados. |
@@ -378,7 +378,7 @@ con series ajustadas para no confundir un cambio mecánico en el precio
 con un rendimiento real para el inversionista.
 
 | Fecha | Proporción reportada | Comentario |
-|----|----|----|
+|------------------|--------------------|----------------------------------|
 | **15 jun. 2005** | 3.0003:1 | Split principal; aproximadamente tres acciones por cada una. |
 | **25 jun. 2008** | 3.00003:1 | Segundo split principal de aproximadamente 3:1. |
 | **2008-2011** | Ajustes entre 1.0026:1 y 1.0286:1 | Ajustes menores; relevantes para series históricas ajustadas. |
@@ -402,7 +402,7 @@ equipo y no están calibradas contra frecuencias históricas; en la
 siguiente entrega buscaremos complementarlas con evidencia cuantitativa.
 
 | Factor | Clasificación | Prob. | Impacto | Mecanismo financiero |
-|----|----|----|----|----|
+|---------------|---------------|---------------|---------------|---------------|
 | Precio del cobre y subproductos | Sistemático / Financiero / Mercado / Precio | Alta | Alta | Menores precios reducen ventas y créditos por subproductos, contraen márgenes, EBITDA y EPS; baja la valoración. |
 | Interrupción minera | No sistemático / Operativo | Media | Alta | Huelgas, fallas, accidentes o permisos reducen volumen, elevan el costo unitario y pueden exigir CAPEX adicional. |
 | Derrames y conflicto comunitario | No sistemático / Operativo / Reputación / Estratégico/Legal | Media | Alta | Remediación, multas, cierres, litigios y pérdida de prestigio afectan flujos y valoración. |
@@ -572,8 +572,7 @@ Investing.com. (2026). GMEXICOB: historial de splits.
 Morningstar. (2026). Grupo México SAB de CV Class B: dividends.
 <https://www.morningstar.com/stocks/xmex/gmexicob/dividends>
 
-S&P Global Market Intelligence. (2026). Grupo México financial ratios
-$$Datos reproducidos por Stock Analysis$$.
+S&P Global Market Intelligence. (2026). Grupo México financial ratios [Datos reproducidos por Stock Analysis].
 <https://stockanalysis.com/quote/bmv/GMEXICOB/statistics/>
 
 Twelve Data. (2026). Grupo México (GMEXICOB): historical dividends.
