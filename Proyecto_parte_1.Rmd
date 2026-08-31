@@ -1,0 +1,580 @@
+---
+title: "Grupo México, S.A.B. de C.V."
+subtitle: "Acción Serie B — GMEXICOB"
+output:
+  html_document:
+    toc: false
+    number_sections: false
+    self_contained: true
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+<img src="https://companieslogo.com/img/orig/GMBXF_BIG-0ff7026f.png?t=1720244492"/>
+
+::: {style="text-align: center;"}
+**INTEGRANTES**
+
+Pablo Tafolla\
+Carlos Romo\
+Gibrán Chávez\
+Carlos Nieves
+
+**Materia:** Análisis del Riesgo\
+**Docente:** María del Rosario Ruiz Hernández\
+**Fecha:** 3 de septiembre de 2026
+:::
+
+------------------------------------------------------------------------
+
+# 1. Introducción
+
+::: {style="text-align: justify;"}
+En esta primera entrega, analizamos a Grupo México, S.A.B. de C.V.,
+cuyas acciones Serie B cotizan en la Bolsa Mexicana de Valores bajo la
+clave GMEXICO y suelen identificarse como GMEXICOB, nuestro objetivo es
+entender primero el activo desde una perspectiva económica y financiera
+para después aplicar herramientas cuantitativas de medición del riesgo.
+Este paso es importante porque el comportamiento de la acción no depende
+solamente de los resultados contables, también está relacionado con los
+precios internacionales de los metales, el crecimiento económico
+mundial, el tipo de cambio, las tasas de interés, la regulación y la
+continuidad de sus operaciones mineras y ferroviarias.
+
+Para entender mejor el activo revisamos la estructura corporativa de
+Grupo México, sus principales líneas de negocio, la presencia
+geográfica, la infraestructura que opera, su posición frente a la
+competencia y los acontecimientos más recientes, después analizamos la
+evolución de los ingresos, la rentabilidad, los márgenes y la estructura
+de capital entre 2023 y 2025, complementando esta parte con indicadores
+financieros recientes, la trayectoria trimestral del EPS de 2019 a 2025,
+los dividendos y los splits. Finalmente, relacionamos cada factor de
+riesgo con la forma en que podría afectar la operación, los estados
+financieros, los flujos, la valoración y, en última instancia, el precio
+de la acción.
+:::
+
+# 2. Descripción general del activo y del negocio
+
+::: {style="text-align: justify;"}
+## 2.1 Giro, función económica e historia
+
+Grupo México es una sociedad controladora mexicana constituida el 2 de
+septiembre de 1999, originalmente bajo el nombre de Nueva G. México,
+S.A. de C.V., aunque la entidad jurídica actual se creó en ese año, los
+negocios y activos del grupo tienen una historia mucho más larga dentro
+de la minería y el ferrocarril. Actualmente, la empresa organiza sus
+operaciones a través de Americas Mining Corporation (AMC), GMéxico
+Transportes (GMXT) y México Proyectos y Desarrollos (MPD), esta
+estructura le permite participar al mismo tiempo en actividades
+extractivas, transporte de carga e infraestructura, aunque la minería
+sigue siendo la división que más influye en el desempeño consolidado
+(Grupo México, 2026a).
+
+En 2025, las ventas consolidadas de Grupo México alcanzaron US\$18,176.7
+millones, de ese monto, la División Minera generó US\$14,562.0 millones,
+equivalentes a aproximadamente 80.1% del total, además, dentro de esta
+misma división el cobre representó 76.7% de las ventas. El 19.9%
+restante (US\$3,614.7 millones) se reparte entre Transportes e
+Infraestructura; los reportes trimestrales de la propia empresa muestran
+ventas acumuladas a nueve meses de 2025 de US\$2,500 millones en
+Transportes y US\$496 millones en Infraestructura, es decir, una
+proporción aproximada de 83%-17% entre ambas divisiones para ese periodo
+(Grupo México, 2026c). No localizamos el desglose exacto del cuarto
+trimestre de 2025 para completar el año completo, por lo que esta
+proporción debe tomarse como una aproximación y no como el dato oficial
+anual; aun así, confirma que Transportes es la división claramente
+dominante fuera de minería, mientras que Infraestructura representa una
+fracción menor y además fue el segmento más débil del año por la
+suspensión de plataformas rentadas a Pemex. Esto muestra que la
+diversificación del grupo ayuda a repartir parte del riesgo entre
+diferentes actividades, pero la empresa sigue teniendo una exposición
+importante al comportamiento del mercado mundial del cobre.
+
+## 2.2 Líneas de negocio y generación de ingresos
+
+| División | Actividades y activos principales | Lectura económica |
+|----|----|----|
+| **Minería** | Exploración, extracción, concentración, fundición y refinación de cobre, molibdeno, zinc, plata, oro y plomo. Operaciones de Southern Copper, Minera México y ASARCO. | Principal fuente de ingresos y EBITDA; alta exposición a precios de metales. |
+| **Transportes** | Ferromex, Ferrosur, Texas Pacifico y Florida East Coast Railway; transporte ferroviario de carga y conexiones con corredores de Norteamérica. | Flujos más vinculados al comercio y la actividad industrial; concesiones y CAPEX intensivos. |
+| **Infraestructura** | Generación eléctrica, construcción, ingeniería, perforación, proyectos y actividades inmobiliarias. | Diversificación parcial y soporte a activos estratégicos; menor peso consolidado. |
+
+Fuente: elaboración propia con base en Grupo México (2026a).
+
+La integración de La Caridad, que incluye mina, concentradora,
+fundición, refinerías y planta de alambrón, le permite a Grupo México
+capturar más valor que si se limitara únicamente a la extracción,
+mientras que en transporte la concesión Pacífico-Norte de Ferromex
+abarca cerca de 6,867 kilómetros y Florida East Coast opera alrededor de
+565 kilómetros entre Jacksonville y Miami. Estas redes conectan zonas
+industriales, puertos y cruces fronterizos, lo que genera ventajas por
+su alcance y conectividad, aunque también implica mantener una
+infraestructura extensa y cumplir de manera constante con requisitos
+operativos y regulatorios.
+
+## 2.3 Presencia, escala y posición competitiva
+
+Al cierre de 2025, Grupo México contaba con aproximadamente 31,281
+trabajadores, frente a 31,523 en 2024 y 30,702 en 2023, además, sus
+operaciones más relevantes se encuentran en México, Perú, Estados Unidos
+y España. Tener esta escala representa una ventaja porque facilita
+economías de costos, diversificación geográfica y capacidad para
+desarrollar proyectos de largo plazo, aunque al mismo tiempo exige
+mayores niveles de inversión, mantenimiento, seguridad laboral y
+supervisión ambiental.
+
+En minería, Grupo México compite con productores globales como BHP,
+Codelco, Freeport-McMoRan y Glencore, mientras que Southern Copper se
+mantiene entre los productores relevantes por su nivel de producción
+atribuible y sus reservas, en transporte la competencia es más regional
+y depende en buena medida de las concesiones, por ejemplo, Canadian
+Pacific Kansas City participa en corredores donde una presión fuerte
+sobre tarifas podría reducir márgenes. En este contexto, las principales
+ventajas competitivas del grupo están en su escala, la vida útil de sus
+reservas, su posición de costos, la integración metalúrgica y la red
+ferroviaria, mientras que sus principales amenazas se relacionan con los
+ciclos de precios, la ejecución operativa, las licencias sociales y la
+regulación.
+
+## 2.4 Acontecimientos recientes
+
+En abril de 2026, el grupo concretó la venta de aproximadamente 80% de
+su participación en la concesionaria de la autopista Salamanca-León por
+cerca de MXN\$8,223 millones, esta operación puede interpretarse como
+una reasignación de recursos hacia proyectos que la empresa considera
+más importantes. También anunció un acuerdo para combinar activos de
+generación eléctrica con Saavi Energía, con una plataforma cercana a
+4,510 MW y una participación prevista de 70% para Grupo México, si la
+operación se completa, la división energética ganaría mayor peso dentro
+del grupo, aunque la minería seguiría siendo la actividad dominante.
+Ninguno de estos dos eventos está reflejado en los estados financieros
+2023-2025 analizados en la Sección 3, ya que ambos ocurrieron o se
+anunciaron después del cierre del último ejercicio completo; por lo
+tanto, el efecto de la venta de la autopista y de la eventual
+consolidación con Saavi Energía sobre el apalancamiento, el EBITDA y la
+mezcla de negocio del grupo queda pendiente de incorporar en una
+actualización posterior.
+:::
+
+# 3. Análisis de estados financieros 2023-2025
+
+::: {style="text-align: justify;"}
+Para esta parte utilizamos los estados financieros consolidados y
+auditados de Grupo México, expresando las cifras en millones de dólares
+estadounidenses, a partir de esos datos calculamos los indicadores
+necesarios para comparar el desempeño de la empresa entre 2023 y 2025.
+
+| Indicador | 2023 | 2024 | 2025 | Var. 24/23 | Var. 25/24 |
+|----|----|----|----|----|----|
+| **Ingresos** | 14,366.9 | 16,169.5 | **18,176.7** | +12.5% | +12.4% |
+| **Utilidad bruta** | 6,196.0 | 7,215.8 | **9,016.2** | +16.5% | +24.9% |
+| **Margen bruto** | 43.1% | 44.6% | **49.6%** | +1.5 pp | +5.0 pp |
+| **Utilidad operativa** | 5,863.3 | 6,871.3 | **8,641.0** | +17.2% | +25.8% |
+| **Margen operativo** | 40.8% | 42.5% | **47.5%** | +1.7 pp | +5.0 pp |
+| **Utilidad neta atribuible** | 3,374.6 | 3,615.3 | **4,922.8** | +7.1% | +36.2% |
+| **Margen neto** | 23.5% | 22.4% | **27.1%** | -1.1 pp | +4.7 pp |
+| **EBITDA** | 7,118.7 | 8,225.7 | **9,963.1** | +15.6% | +21.1% |
+| **Margen EBITDA** | 49.5% | 50.9% | **54.8%** | +1.4 pp | +3.9 pp |
+| **Capital de trabajo** | 8,430.7 | 9,206.7 | **12,733.5** | +9.2% | +38.3% |
+| **Deuda bancaria CP + LP** | 8,800.8 | 8,448.5 | **9,602.5** | -4.0% | +13.7% |
+| **Capital contable** | 21,550.8 | 23,175.7 | **26,127.9** | +7.5% | +12.7% |
+| **Deuda bancaria/capital** | 0.41x | 0.36x | **0.37x** | Mejora | Estable |
+| **Deuda bancaria/EBITDA** | 1.24x | 1.03x | **0.96x** | Mejora | Mejora |
+| **EBITDA/intereses** | 12.7x | 14.3x | **15.8x** | Mejora | Mejora |
+
+Fuente: cálculos propios con información de Grupo México (2026a). “pp”
+significa puntos porcentuales.
+
+## 3.1 Ingresos y crecimiento
+
+Los ingresos pasaron de US\$14,366.9 millones en 2023 a US\$18,176.7
+millones en 2025, lo que representa una tasa compuesta cercana a 12.5%
+anual y refleja un crecimiento favorable durante dos ejercicios
+consecutivos, aun así, no conviene asumir que este ritmo continuará
+automáticamente, ya que una parte del aumento proviene de los precios de
+los metales y no solamente de mayores volúmenes o de una mejora en
+eficiencia. En una empresa de commodities como Grupo México, los
+ingresos pueden crecer de manera importante incluso cuando la capacidad
+física de producción no aumenta en la misma proporción.
+
+## 3.2 Rentabilidad y márgenes
+
+El margen bruto aumentó de 43.1% a 49.6% y el margen operativo de 40.8%
+a 47.5%, lo que indica que el crecimiento de las ventas no fue absorbido
+por un aumento equivalente en los costos, además, el costo en efectivo
+del cobre después de créditos por subproductos bajó de 126.2 centavos
+por libra en 2023 a 88.7 en 2025. Sin embargo, al excluir los ingresos
+provenientes de subproductos, el costo subió de 225.9 centavos en 2024 a
+230.5 en 2025; no localizamos el dato equivalente para 2023 sin
+subproductos, por lo que esta segunda comparación cubre una ventana más
+corta (2024-2025) que la primera (2023-2025) y no permite aislar con
+precisión cuánto de la mejora total del periodo proviene de precios de
+subproductos frente a eficiencia operativa real. Con la evidencia
+disponible, sí puede afirmarse que parte de la mejora en 2025 estuvo
+apoyada por precios favorables de otros metales, pero no debe
+interpretarse como una reducción permanente y verificada en los costos
+de producción; una conclusión más firme requeriría la serie completa
+2023-2025 del costo sin subproductos.
+
+La utilidad neta atribuible creció 36.2% en 2025 y el margen neto llegó
+a 27.1%, después de haberse reducido a 22.4% en 2024, este cambio
+recuerda que el resultado final no depende solamente de la operación,
+también intervienen impuestos, intereses, movimientos cambiarios y otras
+partidas no operativas. Desde nuestra perspectiva, 2025 fue un año
+especialmente fuerte en rentabilidad, por lo que conviene tomarlo con
+cautela si se quiere utilizar como base para hacer proyecciones futuras.
+
+## 3.3 Estructura de capital, liquidez y capacidad de pago
+
+La deuda bancaria aumentó en términos absolutos durante 2025 hasta
+llegar a US\$9,602.5 millones, aun así, la razón deuda bancaria/EBITDA
+bajó de 1.24x en 2023 a 0.96x en 2025 porque la generación operativa
+creció con mayor rapidez, además, la deuda/capital se mantuvo cerca de
+0.37x, la cobertura EBITDA/intereses mejoró a 15.8 veces y el capital de
+trabajo alcanzó US\$12,733.5 millones. En conjunto, estas relaciones
+muestran una capacidad de pago cómoda, por lo que consideramos que el
+principal riesgo financiero no está actualmente en el riesgo de crédito
+ni en el riesgo de liquidez, sino en el riesgo de mercado, especialmente
+en las variaciones de precios y divisas que afectan los flujos.
+:::
+
+# 4. Indicadores financieros clave
+
+::: {style="text-align: justify;"}
+| Indicador | Fórmula / definición | Valor reciente | Interpretación |
+|----|----|----|----|
+| **ROE** | Utilidad neta / capital contable | 27.07% | Rentabilidad elevada sobre el patrimonio; puede normalizarse si cae el cobre. |
+| **ROA** | Utilidad neta / activos totales | 16.08% | Retorno sólido para un negocio intensivo en minas, plantas y vías. |
+| **Deuda/capital** | Deuda total / capital contable | 0.42x | Apalancamiento moderado; no domina el perfil de riesgo. |
+| **Deuda/EBITDA** | Deuda total / EBITDA TTM | 0.98x | Deuda cercana a un año de EBITDA; amplia capacidad relativa. |
+| **Margen EBITDA** | EBITDA / ingresos | 57.04% | Generación operativa elevada, sensible a precios de metales. |
+| **Cobertura de intereses** | EBIT / gasto por intereses | 16.42x | Colchón amplio ante mayores tasas o menor utilidad. |
+| **Razón circulante** | Activo circulante / pasivo circulante | 5.85x | Liquidez de corto plazo robusta. |
+
+Fuente: S&P Global Market Intelligence, reproducido por Stock Analysis;
+actualización al 26 de agosto de 2026. Las definiciones y la
+interpretación son propias.
+
+El ROE de 27.07% reportado por la fuente (TTM) no coincide con el que se
+obtiene al dividir directamente la utilidad neta atribuible y el capital
+contable de la Sección 3 (4,922.8 / 26,127.9 = 18.84% para el cierre de
+2025); la diferencia de más de 8 puntos porcentuales no debe ignorarse.
+Dos explicaciones probables, no excluyentes entre sí: (1) el periodo TTM
+de la fuente corta a mediados de 2026 y no coincide con el año fiscal
+2025 completo, y (2) es posible que el proveedor de datos calcule el ROE
+usando capital contable atribuible únicamente a la controladora,
+mientras que el capital contable de 26,127.9 en la Sección 3 corresponde
+al total consolidado, que incluye la participación no controladora
+relevante en la estructura de Grupo México a través de Southern Copper.
+Mezclar una utilidad "atribuible" en el numerador con un capital "total"
+en el denominador subestima el ROE, lo que podría explicar buena parte
+de la brecha. Dado que no pudimos verificar la metodología exacta de la
+fuente, tratamos el 27.07% como una cifra de referencia y no como el
+valor definitivo del indicador; para la siguiente entrega recalcularemos
+el ROE de forma consistente usando capital contable atribuible a la
+controladora. Además, el indicador está ligado al ciclo del negocio, por
+lo que una caída en los precios de los metales podría reducir la
+utilidad y llevar el ROE a niveles menores incluso si el capital
+contable se mantiene relativamente estable.
+
+El ROA de 16.08% resulta relevante porque Grupo México necesita una gran
+cantidad de activos físicos para operar minas, plantas y redes
+ferroviarias; no obstante, no incluimos en este reporte la cifra de
+activos totales que sustenta ese cálculo, por lo que el indicador no
+puede verificarse de forma independiente con los datos presentados en la
+Sección 3. Al mismo tiempo, la razón deuda/EBITDA de 0.98x en esta tabla
+usa deuda total (no solo bancaria), por lo que difiere ligeramente del
+0.96x de deuda bancaria/EBITDA calculado en la Sección 3 para el cierre
+de 2025; ambas cifras son consistentes entre sí una vez que se reconoce
+esta diferencia de definición, y en conjunto con la cobertura de
+intereses de 16.42x muestran que el riesgo de liquidez es reducido en
+las condiciones actuales. El margen EBITDA de 57.04% (TTM) es mayor al
+54.8% calculado para el año fiscal 2025 completo en la Sección 3; la
+diferencia probablemente refleja un semestre adicional favorable dentro
+de la ventana TTM y no un cambio de definición, pero no contamos con el
+desglose trimestral 2026 para confirmarlo, por lo que tomamos ambas
+cifras como coherentes en dirección aunque no idénticas en magnitud. Esa
+fortaleza operativa puede además volverse sensible ante una caída en los
+precios de los metales, ya que el apalancamiento operativo de minas y
+plantas puede hacer que el EBITDA se contraiga con rapidez.
+:::
+
+# 5. EPS, dividendos y splits
+
+::: {style="text-align: justify;"}
+## 5.1 Evolución trimestral del EPS, 2019-2025
+
+Para mantener una comparación consistente utilizamos el EPS diluido
+trimestral reportado para la acción equivalente GMBXF y expresado en
+dólares por acción, esta serie permite observar con claridad el
+comportamiento cíclico de los resultados, ya que la única pérdida
+trimestral del periodo apareció en 1T20, después se presentó una
+recuperación importante entre 2020 y 2021, una etapa de moderación entre
+2022 y 2024 y una nueva aceleración durante 2025.
+
+```{r eps-grafica, echo=FALSE, out.width="100%", fig.align="center"}
+knitr::include_graphics("imagenes/eps_diluido_trimestral_2019_2025.png")
+```
+
+Fuente: FinanceCharts (2026). Serie trimestral diluida de GMBXF; cifras
+redondeadas a dos decimales.
+
+| Año      | 1T    | 2T   | 3T   | 4T   | Suma anual\* |
+|----------|-------|------|------|------|--------------|
+| **2019** | 0.08  | 0.06 | 0.04 | 0.10 | **0.28**     |
+| **2020** | -0.05 | 0.08 | 0.10 | 0.16 | **0.29**     |
+| **2021** | 0.14  | 0.13 | 0.11 | 0.13 | **0.51**     |
+| **2022** | 0.13  | 0.08 | 0.08 | 0.12 | **0.41**     |
+| **2023** | 0.14  | 0.11 | 0.09 | 0.09 | **0.43**     |
+| **2024** | 0.12  | 0.14 | 0.11 | 0.09 | **0.46**     |
+| **2025** | 0.14  | 0.16 | 0.17 | 0.18 | **0.65**     |
+
+\*Suma aritmética de cifras trimestrales redondeadas; no sustituye el
+EPS anual oficial. Fuente: FinanceCharts (2026).
+
+La serie deja ver con claridad que los resultados de la empresa cambian
+a lo largo del ciclo, en 2020 el EPS pasó de -US\$0.05 en el primer
+trimestre a US\$0.16 en el cuarto, durante 2021 se mantuvo alrededor de
+US\$0.11-US\$0.14 por trimestre, en 2022 y 2023 se moderó, en 2024
+permaneció entre US\$0.09 y US\$0.14 y finalmente en 2025 aumentó de
+US\$0.14 a US\$0.18. Este avance coincide con la mejora observada en
+márgenes y utilidad consolidada, aunque por sí solo no permite asumir
+que ese nivel de crecimiento será permanente.
+
+## 5.2 Dividendos
+
+Grupo México distribuye dividendos de manera recurrente, normalmente con
+una periodicidad trimestral y con montos que deben ser aprobados por sus
+órganos corporativos, en 2023 pagó aproximadamente MXN\$3.80 por acción
+repartidos en cuatro distribuciones y en 2024 el monto aproximado fue de
+MXN\$4.30, mientras que en 2025 continuó con pagos frecuentes. El monto
+puede cambiar dependiendo de la generación de flujo, las necesidades de
+inversión y las decisiones de capital, por eso, consideramos el
+dividendo como una parte importante del rendimiento total para el
+accionista, pero no como una obligación fija comparable con el cupón de
+un bono.
+
+| Periodo | Dividendos observados (MXN/acción) | Lectura |
+|----|----|----|
+| **2023** | 1.00; 1.00; 0.80; 1.00 (total aproximado: 3.80) | Distribución trimestral estable. |
+| **2024** | 0.80; 1.00; 1.20; 1.30 (total aproximado: 4.30) | Crecimiento respecto a 2023. |
+| **2025** | 1.10 en febrero; 1.20 anunciado para mayo; pagos posteriores sujetos a acuerdos | Continuidad de la política y relación con resultados. |
+| **2026** | 1.50 pagado en febrero (dato disponible al corte) | El pago continúa; no garantiza el total anual. |
+
+Fuente: reportes trimestrales de Grupo México y registros históricos de
+dividendos (Fintel, 2026; Twelve Data, 2026).
+
+## 5.3 Splits y ajustes de capital
+
+El historial de la acción muestra dos splits principales cercanos a una
+proporción de 3:1, realizados el 15 de junio de 2005 y el 25 de junio de
+2008, además de algunos ajustes menores relacionados con distribuciones
+o capitalizaciones, un split aumenta el número de acciones en
+circulación y reduce de forma proporcional el precio teórico, pero por
+sí mismo no crea valor económico. Por esta razón, cuando se comparan
+precios, EPS o dividendos a lo largo del tiempo es necesario trabajar
+con series ajustadas para no confundir un cambio mecánico en el precio
+con un rendimiento real para el inversionista.
+
+| Fecha | Proporción reportada | Comentario |
+|----|----|----|
+| **15 jun. 2005** | 3.0003:1 | Split principal; aproximadamente tres acciones por cada una. |
+| **25 jun. 2008** | 3.00003:1 | Segundo split principal de aproximadamente 3:1. |
+| **2008-2011** | Ajustes entre 1.0026:1 y 1.0286:1 | Ajustes menores; relevantes para series históricas ajustadas. |
+
+Fuente: historial de splits de Investing.com (2026) y reporte anual de
+Grupo México (2020).
+:::
+
+# 6. Identificación y análisis de riesgos
+
+::: {style="text-align: justify;"}
+Para ordenar el análisis utilizamos la clasificación de las
+presentaciones del curso: el riesgo total se divide en riesgo
+sistemático, que afecta a muchas empresas y no es diversificable, y
+riesgo no sistemático, que es específico de la compañía y sí puede
+reducirse mediante diversificación. Primero identificamos la fuente y
+después explicamos su efecto sobre la operación, los estados
+financieros, los flujos, la valoración y el precio de la acción. Las
+calificaciones de probabilidad e impacto son juicios cualitativos del
+equipo y no están calibradas contra frecuencias históricas; en la
+siguiente entrega buscaremos complementarlas con evidencia cuantitativa.
+
+| Factor | Clasificación | Prob. | Impacto | Mecanismo financiero |
+|----|----|----|----|----|
+| Precio del cobre y subproductos | Sistemático / Financiero / Mercado / Precio | Alta | Alta | Menores precios reducen ventas y créditos por subproductos, contraen márgenes, EBITDA y EPS; baja la valoración. |
+| Interrupción minera | No sistemático / Operativo | Media | Alta | Huelgas, fallas, accidentes o permisos reducen volumen, elevan el costo unitario y pueden exigir CAPEX adicional. |
+| Derrames y conflicto comunitario | No sistemático / Operativo / Reputación / Estratégico/Legal | Media | Alta | Remediación, multas, cierres, litigios y pérdida de prestigio afectan flujos y valoración. |
+| Ferrocarril y concesiones | Sistemático / Político; No sistemático / Operativo | Media | Alta | Descarrilamientos, robos, congestión o cambios en concesiones afectan ingresos, costos y continuidad de la red. |
+| Tipo de cambio | Sistemático / Financiero / Mercado / Divisas | Alta | Media | Ventas mayormente en USD y parte de los costos en MXN crean efectos mixtos; una apreciación del peso puede presionar el margen. |
+| Inflación y energía | Sistemático / Económico | Alta | Media | Aumentos de salarios, combustibles, explosivos y mantenimiento elevan costos si no son compensados por precios. |
+| Tasas y refinanciamiento | Sistemático / Financiero / Mercado / Tasa de interés / Liquidez | Media | Baja-media | Tasas mayores elevan el costo de deuda y la tasa de descuento; un cierre de mercados puede presionar la liquidez. |
+| China, EE. UU. y comercio | Sistemático / Económico / Político | Media | Alta | Menor actividad industrial reduce demanda de cobre y carga ferroviaria; medidas comerciales alteran corredores y CAPEX. |
+| Ejecución de proyectos | No sistemático / Estratégico/Legal / Operativo | Media | Alta | Retrasos y sobrecostos reducen el retorno del CAPEX y pueden aumentar deuda o diferir flujos. |
+| Ciberseguridad | No sistemático / Tecnológico / Operativo | Media | Media | Ataques a sistemas industriales o ferroviarios pueden interrumpir operaciones y comprometer datos. |
+
+Fuente: elaboración propia con base en las presentaciones 1.1 y 1.2 de
+la materia y en los factores divulgados por Grupo México (2026a).
+
+## 6.1 Riesgos sistemáticos
+
+**Riesgo económico.** Una desaceleración de la economía mundial,
+especialmente en China o Estados Unidos, puede reducir la actividad
+industrial, la demanda de cobre y el tráfico ferroviario. La inflación
+también puede elevar salarios, combustibles, energía, explosivos y
+mantenimiento; si los precios de venta no compensan esos aumentos, los
+márgenes se presionan.
+
+**Riesgo político.** Las decisiones gubernamentales, los cambios en
+regímenes laborales o en la legislación, y las condiciones de las
+concesiones pueden traducirse en pérdidas. Para Grupo México, cambios
+desfavorables en permisos mineros, normas ambientales o concesiones
+ferroviarias pueden aumentar costos, limitar operaciones o retrasar
+proyectos.
+
+### Riesgo financiero
+
+**Riesgo de mercado: precio, divisas y tasa de interés.** El riesgo de
+precio es la exposición más importante porque la minería representó
+80.1% de las ventas y el cobre 76.7% de las ventas mineras; una caída
+del cobre o de los subproductos reduce ingresos, EBITDA, EPS y
+valoración. El riesgo de divisas surge porque cerca de 91% de las ventas
+se factura en dólares y parte de los costos en México está en pesos. El
+riesgo de tasa de interés puede elevar el costo de nuevas obligaciones y
+la tasa de descuento que aplica el mercado.
+
+**Riesgo de crédito y riesgo de liquidez.** El riesgo de crédito aparece
+si clientes u otras contrapartes pagan tarde, de forma parcial o
+incumplen. El riesgo de liquidez consiste en no disponer de efectivo
+suficiente para cubrir obligaciones de corto plazo. Actualmente, la
+razón circulante, la cobertura de intereses y la deuda/EBITDA indican
+una exposición reducida, aunque un periodo adverso prolongado, CAPEX
+elevado, dividendos o adquisiciones podrían disminuir la caja.
+
+## 6.2 Riesgos no sistemáticos
+
+**Riesgos tecnológico y operativo.** La minería y el ferrocarril
+dependen de activos físicos, sistemas y plataformas complejas. Fallas de
+equipos, accidentes, huelgas, errores humanos, ciberataques,
+descarrilamientos, robos o restricciones de agua pueden interrumpir la
+producción o el servicio, elevar costos unitarios, exigir CAPEX
+adicional y reducir márgenes.
+
+**Riesgos reputacional y estratégico/legal.** Un derrame, un conflicto
+comunitario o una respuesta inadecuada puede deteriorar el prestigio y
+provocar pérdida de oportunidades de negocio. A la vez, cambios en las
+variables del plan de negocio, retrasos y sobrecostos de proyectos,
+documentos inadecuados, cláusulas perjudiciales o compromisos que no
+puedan exigirse legalmente pueden reducir la viabilidad y el retorno
+esperado de una inversión.
+
+# 7. Conclusión integrada
+
+Con base en la información revisada, consideramos que Grupo México
+muestra fundamentos operativos sólidos dentro del ciclo de precios de
+metales observado entre 2023 y 2025, y capacidad para seguir creciendo
+de manera selectiva, aunque no puede clasificarse como un negocio de
+bajo riesgo. En ese periodo los ingresos aumentaron 26.5%, el EBITDA
+cerca de 40% y la utilidad neta atribuible alrededor de 46%, mientras
+que los márgenes bruto, operativo y EBITDA alcanzaron sus niveles más
+altos del periodo. Al mismo tiempo, la razón deuda bancaria/EBITDA bajó
+a 0.96x y la cobertura de intereses mejoró, por lo que la combinación de
+crecimiento, rentabilidad y apalancamiento moderado le da a la empresa
+una posición financiera resistente en las condiciones actuales. Es
+importante notar que los tres años analizados corresponden en su mayoría
+a un periodo favorable de precios de metales, por lo que esta lectura
+describe el desempeño de la empresa dentro de un upcycle y no
+necesariamente su comportamiento a través de un ciclo completo del
+cobre, que históricamente se extiende varios años más; tampoco hemos
+comparado estos resultados contra el precio actual de la acción ni
+contra múltiplos de empresas comparables, por lo que esta conclusión
+describe la calidad del negocio y no si la acción representa una
+inversión atractiva a su precio actual.
+
+La principal precaución está en que una parte de esta mejora depende del
+ciclo de los metales, la reducción del costo en efectivo después de
+subproductos estuvo apoyada por mejores precios de metales secundarios,
+mientras que la minería representó 80.1% de las ventas y el cobre 76.7%
+de las ventas mineras. Por eso, los márgenes alcanzados en 2025 no deben
+verse como un nivel mínimo permanente, algo que también se observa en la
+evolución del EPS, con una pérdida en 1T20, una recuperación entre 2020
+y 2021, una moderación posterior y un nuevo avance durante 2025.
+
+En el corto plazo esperamos que la acción reaccione principalmente a los
+reportes trimestrales, el precio del cobre, los niveles de producción,
+los costos, los dividendos y las noticias regulatorias, mientras que en
+el mediano plazo será importante observar la ejecución de proyectos
+mineros y energéticos, la disponibilidad de agua, la renovación de
+licencias sociales, la confiabilidad de la red ferroviaria y el
+equilibrio entre CAPEX, deuda y retornos al accionista. También deben
+considerarse la inflación y una posible apreciación del peso, ya que
+pueden elevar los costos medidos en dólares, además, las tasas de
+interés influyen tanto en el gasto financiero como en el múltiplo de
+valoración que el mercado está dispuesto a pagar.
+
+Por estas razones esperamos que GMEXICOB tenga una volatilidad mayor que
+la de una empresa defensiva y que su comportamiento esté bastante ligado
+al ciclo industrial global, aun así, la diversificación hacia transporte
+e infraestructura, junto con la fortaleza del balance, puede ayudar a
+amortiguar escenarios moderadamente negativos. Entre los principales
+catalizadores positivos estarían un precio del cobre firme, un aumento
+en la producción, una ejecución ordenada de los proyectos y un buen
+flujo de carga ferroviaria, mientras que los factores negativos más
+importantes serían una caída fuerte del cobre, interrupciones
+operativas, sanciones ambientales, sobrecostos de CAPEX o cambios
+desfavorables en las concesiones.
+
+En conclusión, GMEXICOB combina una base corporativa fuerte con una
+exposición importante al riesgo financiero de mercado y al riesgo
+operativo, esta lectura sirve como punto de partida para la siguiente
+etapa del curso, en la que se estimarán rendimientos, volatilidad, beta,
+valor en riesgo y escenarios de estrés. Para que esos modelos
+representen mejor la realidad de la empresa será importante incorporar
+de forma explícita variables como el precio del cobre, el tipo de cambio
+y los eventos operativos, ya que utilizar únicamente la historia del
+precio de la acción podría dejar fuera cambios estructurales relevantes.
+:::
+
+# Referencias
+
+Bolsa Mexicana de Valores. (2026). Información periódica (financiera y
+anual): Grupo México, S.A.B. de C.V.
+<https://www.bmv.com.mx/es/Grupo_BMV/InfoFinanciera/GMEXICO-6008>
+
+FinanceCharts. (2026). Grupo México S.A.B. de C.V. (GMBXF): Quarterly
+diluted EPS history.
+<https://www.financecharts.com/stocks/GMBXF/income-statement/eps-diluted>
+
+Fintel. (2026). GMEXICOB dividend history.
+<https://fintel.io/sd/mx/gmexicob>
+
+Grupo México, S.A.B. de C.V. (2020). Reporte anual 2020.
+<https://gmexico.com/gmdocs/reportesfinancieros/esp/2020/rf_es_2020_bmv.pdf>
+
+Grupo México, S.A.B. de C.V. (2025). Informe anual BMV 2024.
+<https://gmexico.com/GMDocs/ReportesFinancieros/Esp/2024/RF_ES_2024_BMV.pdf>
+
+Grupo México, S.A.B. de C.V. (2026a). Reporte anual 2025.
+<https://www.bmv.com.mx/docs-pub/infoanua/infoanua_1554188_2025_1.pdf>
+
+Grupo México, S.A.B. de C.V. (2026b). Resultados del primer trimestre de
+2025.
+<https://www.gmexico.com/GMDocs/Home/Eng/1st_Quarter_2025_Report.pdf>
+
+Grupo México, S.A.B. de C.V. (2026c). Resultados del tercer trimestre de
+2025.
+<https://www.gmexico.com/GMDocs/ReportesFinancieros/Esp/2025/RF_ES_2025_3T.pdf>
+
+Investing.com. (2026). GMEXICOB: historial de splits.
+<https://www.investing.com/equities/gmexico-historical-data-splits>
+
+Morningstar. (2026). Grupo México SAB de CV Class B: dividends.
+<https://www.morningstar.com/stocks/xmex/gmexicob/dividends>
+
+S&P Global Market Intelligence. (2026). Grupo México financial ratios
+$$Datos reproducidos por Stock Analysis$$.
+<https://stockanalysis.com/quote/bmv/GMEXICOB/statistics/>
+
+Twelve Data. (2026). Grupo México (GMEXICOB): historical dividends.
+<https://twelvedata.com/markets/962106/stock/bmv/gmexicob/historical-data/dividends>
