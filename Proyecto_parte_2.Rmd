@@ -1,0 +1,216 @@
+---
+title: "Grupo México, S.A.B. de C.V."
+subtitle: "Acción Serie B — GMEXICOB"
+output:
+  html_document:
+    toc: false
+    number_sections: false
+    self_contained: true
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+<img src="https://companieslogo.com/img/orig/GMBXF_BIG-0ff7026f.png?t=1720244492"/>
+
+:::: {style="text-align: center;"}
+**INTEGRANTES**
+
+::: {style="text-align: center;"}
+Gibrán Chávez\
+Carlos Nieves\
+Pablo Tafolla\
+Carlos Romo
+:::
+
+**Materia:** Análisis del Riesgo\
+**Docente:** María del Rosario Ruiz Hernández\
+**Fecha:** 24 de septiembre de 2026
+::::
+
+# 1. Introducción
+
+# 2. Exploración de la serie histórica
+
+```{r}
+library(quantmod); library(moments); library(WDI); library(ggplot2)
+```
+
+## 2.1 Gráfica de precio y rendimientos históricos
+
+```{r}
+ticker <- 'GMEXICOB.MX'
+
+
+getSymbols(
+  ticker,
+  src = 'yahoo',
+  from = '2000-10-12'
+)
+
+```
+
+```{r}
+price <- Ad(get(ticker))
+
+log_price <- log(price)
+
+head(cbind(price, log_price))
+```
+
+```{r fig.width=10, fig.height=6}
+plot(
+  price,
+  main = paste('Gráfica del precio de', ticker),
+  ylab = 'Price',
+  xlab = '',
+  col = 'light blue'
+)
+
+plot(
+  log_price,
+  main = paste('Gráfica del logaritmo del precio de', ticker),
+  ylab = 'log Price',
+  xlab = '',
+  col = 'dark blue'
+)
+```
+
+```{r}
+simple_rend <- dailyReturn(price, type='arithmetic')
+  
+log_rend <- dailyReturn(price, type='log')
+
+head(cbind(simple_rend, log_rend))
+```
+
+```{r fig.width=10, fig.height=6}
+plot(
+  simple_rend,
+  main = paste('Rendimiento simple diario de', ticker),
+  ylab = 'Rendimiento',
+  xlab = '',
+  col = 'light blue'
+)
+
+plot(
+  log_rend,
+  main = paste('Rendimiento log diario de', ticker),
+  ylab = 'Rendimiento',
+  xlab = '',
+  col = 'dark blue'
+)
+```
+
+## 2.2 Comportamiento general del activo y periodos relevantes
+
+## 2.3 Máximo drawdown
+
+# 3. Identificación de eventos y explicación de cambios
+
+## 3.1 Investigación de noticias y contexto por periodo
+
+## 3.2 Explicación de eventos y su relación con los movimientos del precio
+
+# 4. Relación con el entorno económico
+
+## 4.1 Gráfica combinada: rendimiento anual del activo vs. crecimiento del PIB
+
+```{r}
+# Para el rendimiento anual
+
+rend_anual <- apply.yearly(
+  simple_rend,
+  function(x) mean(x) * 252 
+)
+
+rend_anual <- data.frame(
+  anio = as.numeric(format(index(rend_anual), "%Y")),
+  rendimiento = as.numeric(rend_anual) * 100
+)
+
+head(rend_anual)
+```
+
+
+```{r}
+# Para el PIB
+
+pib <- WDI(
+  country = 'MX',
+  indicator = 'NY.GDP.MKTP.KD.ZG',
+  start = 2000,
+  end = 2025
+)
+
+pib <- data.frame(
+  anio = pib$year,
+  crecimiento_pib = pib$NY.GDP.MKTP.KD.ZG
+)
+
+head(pib)
+```
+
+```{r}
+datos <- merge(
+  rend_anual,
+  pib,
+  by = "anio"
+)
+
+datos <- datos[order(datos$anio), ]
+
+head(datos)
+```
+
+```{r}
+ggplot(datos, aes(x = anio)) +
+
+  geom_col(
+    aes(y = rendimiento, fill = "Rendimiento anual de GMEXICOB"),
+    alpha = 1
+  ) +
+
+  geom_line(
+    aes(y = crecimiento_pib, color = "Crecimiento del PIB"),
+    linewidth = 1
+  ) +
+
+  geom_point(
+    aes(y = crecimiento_pib, color = "Crecimiento del PIB"),
+    size = 2
+  ) +
+
+  scale_fill_manual(
+    values = c(
+      "Rendimiento anual de GMEXICOB" = "light blue"
+    )
+  ) +
+
+  scale_color_manual(
+    values = c(
+      "Crecimiento del PIB" = "dark blue"
+    )
+  ) +
+
+  labs(
+    title = "Rendimiento anual de GMEXICOB y crecimiento del PIB de México",
+    x = "Año",
+    y = "Porcentaje (%)",
+    fill = "",
+    color = ""
+  ) +
+
+  theme_classic()
+```
+
+
+## 4.2 Análisis de la relación con el ciclo económico
+
+# 5. Análisis de los periodos más recientes
+
+## 5.1 Eventos relevantes del último año
+
+## 5.2 Reflejo de dichos eventos en el precio y los rendimientos
+
+# 6. Conclusión
