@@ -64,7 +64,7 @@ plot(
   main = paste('Gráfica del precio de', ticker),
   ylab = 'Price',
   xlab = '',
-  col = 'light blue'
+  col = 'red'
 )
 
 plot(
@@ -72,7 +72,7 @@ plot(
   main = paste('Gráfica del logaritmo del precio de', ticker),
   ylab = 'log Price',
   xlab = '',
-  col = 'dark blue'
+  col = 'dark red'
 )
 ```
 
@@ -90,7 +90,7 @@ plot(
   main = paste('Rendimiento simple diario de', ticker),
   ylab = 'Rendimiento',
   xlab = '',
-  col = 'light blue'
+  col = 'red'
 )
 
 plot(
@@ -98,7 +98,7 @@ plot(
   main = paste('Rendimiento log diario de', ticker),
   ylab = 'Rendimiento',
   xlab = '',
-  col = 'dark blue'
+  col = 'dark red'
 )
 ```
 
@@ -163,7 +163,7 @@ datos <- datos[order(datos$anio), ]
 head(datos)
 ```
 
-```{r}
+```{r fig.width=10, fig.height=6}
 ggplot(datos, aes(x = anio)) +
 
   geom_col(
@@ -183,13 +183,13 @@ ggplot(datos, aes(x = anio)) +
 
   scale_fill_manual(
     values = c(
-      "Rendimiento anual de GMEXICOB" = "light blue"
+      "Rendimiento anual de GMEXICOB" = "red"
     )
   ) +
 
   scale_color_manual(
     values = c(
-      "Crecimiento del PIB" = "dark blue"
+      "Crecimiento del PIB" = "dark red"
     )
   ) +
 
