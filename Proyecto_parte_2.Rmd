@@ -3,11 +3,16 @@ title: "Grupo México, S.A.B. de C.V."
 subtitle: "Acción Serie B — GMEXICOB"
 output:
   html_document:
-    toc: false
-    number_sections: false
-    self_contained: true
-editor_options: 
-  markdown: 
+    theme: sandstone          
+    highlight: monochrome 
+    toc: true              # activa el índice
+    toc_depth: 2           # muestra secciones (#) y subsecciones (##)
+    toc_float:
+      collapsed: true      # las subsecciones se despliegan al navegar
+      smooth_scroll: true
+    number_sections: true  # enumerar
+editor_options:
+  markdown:
     wrap: 72
 ---
 
@@ -28,15 +33,100 @@ Carlos Romo
 **Fecha:** 24 de septiembre de 2026
 ::::
 
-# 1. Introducción
+# Introducción
 
-# 2. Exploración de la serie histórica
+::: {style="text-align: justify;"}
+En esta segunda parte analizamos los cambios históricos en el precio y
+los rendimientos de Grupo México, con el propósito de relacionar los
+movimientos de su acción con acontecimientos económicos, políticos y
+empresariales. A partir de las gráficas, identificamos periodos de
+crecimiento, caídas pronunciadas y recuperación, y examinamos qué
+información pudo modificar las expectativas de los inversionistas en
+cada momento.
 
-```{r}
-library(quantmod); library(moments); library(WDI); library(ggplot2)
+También estimamos el máximo drawdown y comparamos el rendimiento anual
+de GMEXICOB con el crecimiento del PIB de México. Esta comparación nos
+permite discutir hasta qué punto la acción acompaña al ciclo económico
+nacional y por qué, en determinados años, presenta un comportamiento
+diferente. Finalmente, revisamos los acontecimientos del último año
+comprendido en la serie y reflexionamos sobre el riesgo que implica
+invertir en un activo expuesto tanto a las decisiones de la empresa como
+a cambios del entorno internacional.
+:::
+
+# Exploración de la serie histórica
+
+```{r, message=FALSE, warning=FALSE}
+library(quantmod); library(moments); library(WDI); library(ggplot2); library(PerformanceAnalytics)
 ```
 
-## 2.1 Gráfica de precio y rendimientos históricos
+## Gráfica de precio y rendimientos históricos
+
+::: {style="text-align: justify;"}
+Trabajamos con la serie de precios de cierre ajustados de GMEXICOB.MX
+obtenida de Yahoo Finance, correspondiente al periodo del 3 de enero de
+2000 al 30 de junio de 2026. Este es el intervalo utilizado en nuestro
+análisis, aunque no representa toda la historia bursátil del grupo, ya
+que las acciones de Grupo México cotizaban en la Bolsa Mexicana de
+Valores desde antes del año 2000. Sin embargo, en Yahoo Finance
+únicamente existe registro de la serie a partir del 3 de enero de 2000,
+por lo que esa es la primera observación disponible y el punto de inicio
+de nuestro estudio. Por ello, las conclusiones y las medidas de riesgo
+que presentamos se refieren exclusivamente a esta muestra.
+
+Utilizamos el precio ajustado porque incorpora los ajustes por
+dividendos y desdoblamientos de acciones, lo que permite comparar las
+observaciones de distintos momentos con mayor consistencia. En
+consecuencia, los valores históricos mostrados no deben interpretarse
+como las cotizaciones nominales exactas que se observaron en cada fecha,
+y sus variaciones incorporan el tratamiento de estas distribuciones por
+parte del proveedor ([Yahoo, s.
+f.](https://help.yahoo.com/kb/SLN28256.html)).
+
+Calculamos los rendimientos simples diarios mediante la expresión
+:::
+
+$$
+R_t=\frac{P_t}{P_{t-1}}-1
+$$
+
+::: {style="text-align: justify;"}
+y los rendimientos logarítmicos mediante
+:::
+
+$$
+r_t=\ln\left(\frac{P_t}{P_{t-1}}\right).
+$$
+
+::: {style="text-align: justify;"}
+En ambas fórmulas, $P_t$ representa el precio ajustado del día y
+$P_{t-1}$ el de la sesión anterior. El rendimiento simple expresa
+directamente la variación proporcional, mientras que el logarítmico
+facilita la acumulación de rendimientos mediante sumas. Sus valores son
+muy parecidos cuando los movimientos diarios son pequeños, aunque la
+diferencia aumenta durante las variaciones más pronunciadas. En las
+gráficas, un rendimiento de 0.10 equivale a 10%, no a 0.10%.
+
+Ambas medidas se relacionan de forma exacta mediante
+:::
+
+$$
+r_t=\ln(1+R_t), \qquad R_t=e^{r_t}-1,
+$$
+
+::: {style="text-align: justify;"}
+y la propiedad de acumulación del rendimiento logarítmico se expresa como
+:::
+
+$$
+\sum_{t=1}^{T} r_t=\ln\left(\frac{P_T}{P_0}\right), \qquad
+\prod_{t=1}^{T}(1+R_t)=\frac{P_T}{P_0}.
+$$
+
+::: {style="text-align: justify;"}
+Es decir, los rendimientos logarítmicos se suman a lo largo del tiempo,
+mientras que los simples deben capitalizarse (multiplicarse).
+:::
 
 ```{r}
 ticker <- 'GMEXICOB.MX'
@@ -45,7 +135,8 @@ ticker <- 'GMEXICOB.MX'
 getSymbols(
   ticker,
   src = 'yahoo',
-  from = '2000-10-12'
+  from = '2000-01-01',
+  to = '2026-07-01'
 )
 
 ```
@@ -62,7 +153,7 @@ head(cbind(price, log_price))
 plot(
   price,
   main = paste('Gráfica del precio de', ticker),
-  ylab = 'Price',
+  ylab = 'Precio Ajustado (MXN)',
   xlab = '',
   col = 'red'
 )
@@ -70,19 +161,39 @@ plot(
 plot(
   log_price,
   main = paste('Gráfica del logaritmo del precio de', ticker),
-  ylab = 'log Price',
+  ylab = 'Logaritmo del Precio',
   xlab = '',
   col = 'dark red'
 )
 ```
 
+::: {style="text-align: justify;"}
+La gráfica del precio muestra una tendencia ascendente de largo plazo,
+especialmente marcada en el tramo final. Sin embargo, esta escala
+comprime visualmente las variaciones de los primeros años, puesto que
+los precios recientes son mucho mayores. La gráfica del logaritmo ayuda
+a observar mejor las variaciones proporcionales y permite reconocer que
+las caídas de comienzos de los años dos mil fueron importantes, aunque
+parezcan pequeñas en la gráfica original. Que el logaritmo sea negativo
+en ciertos momentos solamente significa que el precio ajustado era
+inferior a una unidad monetaria, no que la acción tuviera un precio
+negativo.
+:::
+
 ```{r}
 simple_rend <- dailyReturn(price, type='arithmetic')
-  
+
 log_rend <- dailyReturn(price, type='log')
 
 head(cbind(simple_rend, log_rend))
 ```
+
+::: {style="text-align: justify;"}
+El valor de 0 en la primera fecha (3 de enero de 2000) no es un
+rendimiento observado, sino el valor que asigna `dailyReturn` a la
+primera observación, ya que no existe un precio previo con el cual
+compararla.
+:::
 
 ```{r fig.width=10, fig.height=6}
 plot(
@@ -102,26 +213,333 @@ plot(
 )
 ```
 
-## 2.2 Comportamiento general del activo y periodos relevantes
+::: {style="text-align: justify;"}
+En las gráficas de rendimientos observamos fluctuaciones alrededor de
+cero y periodos en los que los movimientos positivos y negativos se
+vuelven más amplios. Esto resulta especialmente visible durante la
+crisis de 2008 y en otros episodios de incertidumbre. La concentración
+de movimientos intensos sugiere que la volatilidad cambia con el tiempo,
+aunque la inspección visual, por sí sola, no permite establecer una
+distribución estadística ni cuantificar la probabilidad de una pérdida
+futura.
 
-## 2.3 Máximo drawdown
+Para dar una primera medida numérica de esa dispersión utilizamos la
+volatilidad, definida como la desviación estándar de los rendimientos
+diarios, y su versión anualizada, que supone aproximadamente 252
+sesiones bursátiles por año:
+:::
 
-# 3. Identificación de eventos y explicación de cambios
+$$
+\sigma_{anual}\approx\sigma_{diaria}\sqrt{252}.
+$$
 
-## 3.1 Investigación de noticias y contexto por periodo
+```{r volatilidad}
+vol_diaria <- sd(simple_rend)
+vol_anual <- vol_diaria * sqrt(252)
 
-## 3.2 Explicación de eventos y su relación con los movimientos del precio
+c(
+  media_diaria = mean(simple_rend),
+  volatilidad_diaria = vol_diaria,
+  volatilidad_anual = vol_anual
+)
+```
 
-# 4. Relación con el entorno económico
+::: {style="text-align: justify;"}
+La volatilidad diaria es de aproximadamente 2.42%, equivalente a una
+volatilidad anualizada cercana a 38.5%. La anualización con $\sqrt{252}$
+supone que los rendimientos diarios son independientes y de varianza
+constante, lo cual es solo una aproximación, puesto que, como se observa
+en las gráficas, la volatilidad cambia a lo largo del tiempo.
+:::
 
-## 4.1 Gráfica combinada: rendimiento anual del activo vs. crecimiento del PIB
+## Comportamiento general del activo y periodos relevantes
+
+::: {style="text-align: justify;"}
+El comportamiento de GMEXICOB combina una apreciación considerable de
+largo plazo con pérdidas temporales profundas. Por ello, observar
+únicamente el precio inicial y final daría una imagen incompleta del
+riesgo, puesto que durante el recorrido un inversionista habría
+enfrentado caídas importantes y, en algunos casos, periodos prolongados
+de recuperación.
+
+Identificamos los siguientes periodos por la magnitud de sus
+movimientos, los cambios de tendencia y su relevancia para entender la
+exposición de la empresa.
+:::
+
+| Periodo | Movimiento observado | Relevancia para el análisis |
+|------------------------|------------------------|------------------------|
+| 2000-2002 | Caída máxima de 84.01% dentro del episodio iniciado en enero de 2000. | Es la pérdida más profunda de la muestra y muestra la importancia de combinar riesgo de mercado y situación financiera. |
+| 2003-2007 | Recuperación y avance sostenido, con rendimientos anuales de 154.04% en 2003 y 95.01% en 2004. | Permite analizar cómo un entorno favorable para los metales puede mejorar las expectativas de rentabilidad. |
+| 2007-2009 | Caída de 76.86% hasta noviembre de 2008, seguida de una recuperación muy pronunciada en 2009. | Muestra la reacción ante una crisis internacional y el cambio posterior de expectativas. |
+| 2011 | Descenso de 37.18% desde el máximo previo hasta el mínimo de octubre. | Refleja la sensibilidad del activo a la incertidumbre financiera y al crecimiento mundial. |
+| 2018 | Caída de 41.49% dentro del episodio iniciado en enero. | Permite relacionar el precio con las tensiones comerciales y el deterioro del mercado de metales. |
+| 2020-2021 | Caída de alrededor de 30.5% entre el 2 de enero y el 23 de marzo de 2020, y recuperación posterior, con un rendimiento anual de 71.75% en 2020. | Evidencia que una pérdida intensa dentro del año puede coexistir con una ganancia al cierre. |
+| Marzo-octubre de 2022 | Descenso de 46.47%, con recuperación del máximo previo hasta abril de 2024. | Combina riesgos de tasas, crecimiento mundial, precios de metales y operación minera. |
+| 2025-primer semestre de 2026 | Fuerte tendencia ascendente (78.80% en 2025 y 17.82% en el primer semestre de 2026), interrumpida por correcciones como la caída diaria de 14.99% del 6 de octubre de 2025. | Permite evaluar cómo conviven mejores resultados empresariales con sorpresas y decisiones que generan incertidumbre. |
+
+::: {style="text-align: justify;"}
+Los porcentajes exactos de drawdown y los rendimientos anuales
+provienen de las salidas de R incluidas en el documento (secciones 2.3
+y 4.1); la caída de marzo de 2020 y el rendimiento del primer semestre
+de 2026 se calcularon directamente con la misma serie de precios
+ajustados. Debemos
+distinguir ambas medidas, puesto que el rendimiento anual compara el
+inicio y el cierre del año, mientras que el drawdown mide la pérdida
+desde un máximo previo hasta un mínimo posterior, incluso cuando abarca
+varios años.
+:::
+
+## Máximo drawdown
+
+::: {style="text-align: justify;"}
+El drawdown en la fecha $t$ mide cuánto se encuentra el precio por
+debajo del máximo alcanzado hasta ese momento:
+:::
+
+$$D_t = \frac{P_t - \max_{s \le t} P_s}{\max_{s \le t} P_s} \le 0$$
+
+::: {style="text-align: justify;"}
+El máximo drawdown es el valor más negativo de esa serie, es decir, la
+mayor caída del precio desde un máximo previo hasta un mínimo posterior:
+:::
+
+$$MDD = \min_{t} D_t = \min_{t} \left( \frac{P_t - \max_{s \le t} P_s}{\max_{s \le t} P_s} \right)$$
+
+::: {style="text-align: justify;"}
+Una vez sufrida una caída de magnitud $|MDD|$, el rendimiento $G$ que se
+necesita desde el mínimo para regresar al máximo previo es
+:::
+
+$$G = \frac{1}{1-|MDD|} - 1$$
+
+```{r max_drawdown}
+mD <- maxDrawdown(simple_rend)
+mD
+```
+
+```{r top5}
+table.Drawdowns(simple_rend, top = 5)
+```
+
+```{r fig.width=10, fig.height=6}
+chart.Drawdown(
+  simple_rend,
+  main = 'Drawdown histórico de GMEXICOB',
+  ylab = 'Drawdown',
+  col = 'red'
+)
+```
+
+::: {style="text-align: justify;"}
+El resultado de `maxDrawdown` es aproximadamente 0.84008, equivalente a una pérdida
+máxima de aproximadamente 84.01%. La función presenta la magnitud como
+un número positivo, mientras que la fórmula incluida en el documento y
+la columna *Depth* de la tabla expresan la caída con signo negativo.
+Ambas formas describen el mismo resultado.
+
+Según la tabla, el episodio comenzó el 18 de enero de 2000, alcanzó su
+mínimo el 2 de enero de 2002 y recuperó el máximo previo el 21 de
+diciembre de 2004. La fecha inicial identifica el comienzo del periodo
+por debajo del máximo, por lo que no debe confundirse automáticamente
+con la fecha exacta en que se alcanzó ese máximo. La duración reportada
+fue de 1,286 observaciones, que corresponden a sesiones de la serie y no
+a días naturales.
+
+Para dimensionar la pérdida, una inversión equivalente a 100 unidades en
+el máximo previo habría disminuido hasta aproximadamente 15.99 en el
+punto más bajo, siguiendo la evolución de la serie ajustada. Desde ese
+mínimo habría necesitado aumentar alrededor de 525.3% para recuperar su
+nivel inicial, ya que $G = 1/(1-0.8401) - 1 \approx 5.253$. Esto muestra que las pérdidas y las recuperaciones no son
+simétricas, cuanto mayor es la caída, más exigente resulta el
+crecimiento necesario para compensarla.
+
+El segundo episodio más profundo alcanzó 76.86% y tuvo su mínimo el 20
+de noviembre de 2008, mientras que el de 2022 llegó a 46.47% y no
+recuperó el máximo previo hasta el 9 de abril de 2024. Estos resultados
+muestran que el riesgo incluye tanto la magnitud de la pérdida como el
+tiempo durante el cual el capital permanece por debajo de su valor
+anterior.
+
+La tabla agrupa cada episodio hasta recuperar su máximo de referencia.
+Por esta razón, la caída de marzo de 2020 forma parte del episodio
+iniciado en enero de 2018, cuyo mínimo ocurrió el 26 de noviembre de
+2018 y cuyo máximo previo no se recuperó hasta el 28 de julio de 2020;
+por ello no aparece como una fila independiente entre los cinco mayores
+drawdowns. Además, el 84.01% es una medida
+histórica de esta muestra, no un límite para las pérdidas que podrían
+ocurrir en el futuro.
+:::
+
+# Identificación de eventos y explicación de cambios
+
+## Investigación de noticias y contexto por periodo
+
+::: {style="text-align: justify;"}
+Durante 2000-2002, la caída coincidió con un entorno desfavorable para
+los metales y con la recesión estadounidense de 2001. La documentación
+de Southern Peru Copper presentada ante la SEC señala que la disminución
+de los precios de los metales llevó a Minera México a incumplir
+condiciones de sus contratos de deuda y determinadas obligaciones de
+pago durante 2001 y 2002. Esto permite relacionar el descenso con una
+combinación de menores ingresos esperados y presión financiera, aunque
+no demuestra que toda la pérdida bursátil respondiera a un solo
+acontecimiento ([Southern Peru Copper Corporation,
+2005](https://www.sec.gov/Archives/edgar/data/1001838/000104746905004703/a2152163zdef14a.htm)).
+
+La recuperación de 2003-2007 ocurrió en un contexto muy distinto. El
+Banco Mundial documentó que el aumento de los precios de los metales
+desde 2003 estuvo impulsado por la demanda de China y por las
+dificultades para ampliar la oferta con rapidez. Para Grupo México,
+vender cobre a mejores precios podía elevar los ingresos y los márgenes,
+favoreciendo las expectativas sobre su generación de efectivo. Este
+contexto es consistente con los fuertes rendimientos observados y con la
+recuperación del máximo anterior en diciembre de 2004 ([Banco Mundial,
+2008](https://www.worldbank.org/content/dam/Worldbank/GEP/GEParchives/GEP2008/42097optmzd0REVISED0GEP020081PUBLIC1.pdf)).
+
+El periodo 2007-2009 permite observar tanto el deterioro como la
+recuperación de esas expectativas. La crisis financiera internacional
+redujo la disponibilidad de crédito y debilitó la actividad industrial,
+mientras que los precios del cobre y de otros metales cayeron
+fuertemente durante la segunda mitad de 2008. Estas condiciones
+afectaban los ingresos esperados de una empresa minera y elevaban el
+rendimiento que los inversionistas exigían para mantener sus acciones.
+Durante 2009, la recuperación de las materias primas, las mejores
+condiciones financieras y la recuperación de Asia contribuyeron a
+cambiar ese panorama. La acción recuperó su máximo previo en octubre de
+2009, aun cuando la economía mexicana seguía mostrando las consecuencias
+de la recesión ([Fondo Monetario Internacional,
+2009](https://www.imf.org/-/media/websites/imf/imported-flagship-issues/external/pubs/ft/weo/2009/01/pdf/_textpdf.pdf);
+[Helbling,
+2009](https://www.imf.org/en/news/articles/2015/09/28/04/53/sores123009a)).
+
+En 2011, las tensiones de deuda soberana y del sistema financiero
+europeo, junto con la debilidad de la recuperación internacional,
+deterioraron la confianza. Interpretamos que este entorno pudo afectar a
+GMEXICOB mediante una menor demanda esperada de metales y una mayor
+aversión al riesgo. Así, aunque el problema se originara fuera de
+México, podía modificar la valoración de una empresa expuesta al ciclo
+industrial mundial ([Fondo Monetario Internacional,
+2011](https://www.imf.org/external/pubs/ft/reo/2011/eur/eng/pdf/ereo1011.pdf)).
+
+Durante 2018, las tensiones comerciales entre Estados Unidos y China
+aumentaron la incertidumbre sobre la demanda industrial. En su reporte
+del tercer trimestre, Grupo México mostró que el precio de referencia
+COMEX del cobre pasó de 3.09 dólares por libra en el segundo trimestre a
+2.73 en el tercero, mientras que el EBITDA minero trimestral disminuyó
+7.9% frente al mismo periodo del año anterior. El EBITDA (utilidad antes
+de intereses, impuestos, depreciación y amortización) aproxima la
+generación de efectivo de la operación, y el precio COMEX es la
+cotización de referencia del cobre en la bolsa de futuros de Nueva
+York, del mismo modo que el precio LME, mencionado más adelante, es la
+referencia de la Bolsa de Metales de Londres. Estos datos ayudan a
+conectar el deterioro del mercado del cobre con las expectativas de
+rentabilidad, incluso cuando algunos resultados acumulados todavía
+presentaban crecimiento ([Grupo México,
+2018](https://www.gmexico.com/GMDocs/ReportesFinancieros/Esp/2018/RF_ES_2018_3T.pdf)).
+
+En 2020, la pandemia alteró las expectativas de producción, consumo y
+transporte, lo que ayuda a explicar la caída inicial. Sin embargo, el
+mercado de metales comenzó a recuperarse durante ese mismo año, apoyado
+por la reactivación de la demanda, especialmente en China, y por
+restricciones de oferta. Posteriormente, Grupo México reportó que el
+precio promedio de referencia del cobre aumentó 51.4% en 2021 y que sus
+ventas consolidadas crecieron 35.5%. Estos resultados corroboran la
+mejora del entorno sectorial, aunque fueron publicados después de
+finalizar 2021 y no deben presentarse como una noticia conocida durante
+toda la recuperación ([Banco Mundial,
+2020](https://thedocs.worldbank.org/en/doc/f448acf308cc7ba2de536ac5b438b93c-0350012020/original/CMO-October-2020.pdf);
+[Grupo México,
+2022a](https://www.gmexico.com/GMDocs/ReportesFinancieros/ING/2021/RF_EN_2021_4Q.pdf)).
+
+En 2022 coincidieron una inflación elevada, el endurecimiento monetario
+y preocupaciones sobre el crecimiento mundial. La Reserva Federal elevó
+su tasa objetivo a un intervalo de 3.00%-3.25% en septiembre, señalando
+también las presiones derivadas de la guerra en Ucrania. A estos
+factores se sumaron dificultades operativas de Grupo México, que reportó
+una reducción de 9.6% en la producción acumulada de cobre a septiembre y
+afectaciones por bloqueos en Cuajone. Consideramos que la combinación de
+menores perspectivas de demanda, mayores tasas y restricciones
+productivas es consistente con el drawdown observado. El reporte
+empresarial se publicó el 27 de octubre, después del mínimo del día 24,
+por lo que sirve como confirmación posterior de las condiciones del
+periodo, no como detonante de ese mínimo ([Reserva Federal,
+2022](https://www.federalreserve.gov/newsevents/pressreleases/monetary20220921a.htm);
+[Grupo México,
+2022b](https://www.gmexico.com/GMDocs/Home/Esp/Reporte_3er_Trimestre_2022.pdf)).
+:::
+
+## Explicación de eventos y su relación con los movimientos del precio
+
+::: {style="text-align: justify;"}
+Los acontecimientos anteriores pueden afectar el precio porque modifican
+las expectativas sobre los flujos futuros de la empresa y el riesgo de
+recibirlos. Cuando aumenta el precio esperado del cobre, los
+inversionistas pueden anticipar mayores ingresos y utilidades, mientras
+que una reducción de la demanda industrial produce el efecto contrario.
+Debido a que la minería requiere instalaciones y costos que no se
+ajustan inmediatamente al volumen producido, una variación en ingresos
+puede generar un cambio importante en los márgenes.
+
+También influye el rendimiento exigido por los inversionistas. Durante
+una crisis o un periodo de tasas elevadas, pueden requerir una
+compensación mayor para mantener acciones, lo que reduce el valor
+presente de los flujos esperados. Por ello, la cotización puede caer
+incluso cuando la empresa continúa operando y todavía reporta
+utilidades.
+
+En nuestra interpretación, las crisis internacionales representan
+riesgos sistemáticos porque afectan a numerosos activos, mientras que
+los bloqueos de una mina o una propuesta de adquisición introducen
+riesgos específicos de la empresa. Ambos pueden coincidir y reforzarse,
+como sucede cuando una operación enfrenta menores volúmenes precisamente
+mientras se deterioran los precios del metal.
+
+La reacción depende, además, de qué tan diferente sea la información
+respecto de lo que el mercado esperaba. Un buen resultado puede provocar
+poco movimiento si ya estaba anticipado, mientras que una noticia
+inesperada puede generar un ajuste brusco. Por esta razón, las
+relaciones que planteamos son explicaciones fundamentadas y compatibles
+con los datos, pero no una demostración de cuánto aportó cada evento al
+rendimiento. Para aislar ese efecto necesitaríamos comparar ventanas
+específicas y controlar otros movimientos del mercado.
+:::
+
+# Relación con el entorno económico
+
+## Gráfica combinada: rendimiento anual del activo vs. crecimiento del PIB
+
+::: {style="text-align: justify;"}
+Comparamos los rendimientos anuales de GMEXICOB, calculados con precios
+ajustados, con la tasa de crecimiento anual del PIB real de México
+obtenida del Banco Mundial mediante el indicador `NY.GDP.MKTP.KD.ZG`. La
+comparación abarca 2000-2025, puesto que la serie bursátil termina en
+junio de 2026 y ese rendimiento parcial no sería directamente comparable
+con un crecimiento anual completo del PIB ([Banco Mundial, s.
+f.](https://data.worldbank.org/indicator/NY.GDP.MKTP.KD.ZG?locations=MX)).
+
+Para los años completos, el rendimiento compara el último precio
+disponible de un año con el cierre del anterior. El dato de 2000
+requiere una precisión, dado que la muestra empieza el 3 de enero, su
+rendimiento se calcula desde esa primera observación y no desde el
+cierre de 1999.
+:::
+
+$$R_{a} = \left(\frac{P_{a}^{cierre}}{P_{a-1}^{cierre}} - 1\right)\times 100$$
+
+::: {style="text-align: justify;"}
+donde $P_{a}^{cierre}$ es el último precio ajustado disponible del año
+$a$. A diferencia de las fórmulas diarias, aquí el subíndice indica años
+y no sesiones, y el resultado se expresa en porcentaje para compararlo
+con el crecimiento del PIB.
+:::
 
 ```{r}
 # Para el rendimiento anual
 
-rend_anual <- apply.yearly(
-  simple_rend,
-  function(x) mean(x) * 252 
+rend_anual <- yearlyReturn(
+  price,
+  type = 'arithmetic'
 )
 
 rend_anual <- data.frame(
@@ -166,51 +584,442 @@ head(datos)
 ```{r fig.width=10, fig.height=6}
 ggplot(datos, aes(x = anio)) +
 
+  geom_hline(yintercept = 0, color = "gray40") +
+
   geom_col(
     aes(y = rendimiento, fill = "Rendimiento anual de GMEXICOB"),
-    alpha = 1
+    alpha = 0.8
   ) +
 
   geom_line(
-    aes(y = crecimiento_pib, color = "Crecimiento del PIB"),
+    aes(y = crecimiento_pib, color = "Crecimiento del PIB de México"),
     linewidth = 1
   ) +
 
   geom_point(
-    aes(y = crecimiento_pib, color = "Crecimiento del PIB"),
+    aes(y = crecimiento_pib, color = "Crecimiento del PIB de México"),
     size = 2
   ) +
 
   scale_fill_manual(
-    values = c(
-      "Rendimiento anual de GMEXICOB" = "red"
-    )
+    values = c("Rendimiento anual de GMEXICOB" = "gray70")
   ) +
 
   scale_color_manual(
-    values = c(
-      "Crecimiento del PIB" = "dark red"
-    )
+    values = c("Crecimiento del PIB de México" = "dark red")
   ) +
+
+  scale_x_continuous(breaks = datos$anio) +
 
   labs(
     title = "Rendimiento anual de GMEXICOB y crecimiento del PIB de México",
+    subtitle = "2000–2025",
     x = "Año",
     y = "Porcentaje (%)",
     fill = "",
-    color = ""
+    color = "",
+    caption = "Fuentes: Yahoo Finance y Banco Mundial (WDI)"
   ) +
 
-  theme_classic()
+  theme_classic() +
+
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5),
+    legend.position = "bottom"
+  )
 ```
 
+::: {style="text-align: justify;"}
+Aunque ambas variables se expresan en porcentajes, representan conceptos
+diferentes. El rendimiento bursátil mide la variación de una inversión
+en un periodo, mientras que el crecimiento del PIB real mide el cambio
+en el volumen de producción de la economía. Por ello, la gráfica debe
+leerse comparando la dirección y el momento de los movimientos, no su
+tamaño.
 
-## 4.2 Análisis de la relación con el ciclo económico
+La primera característica que destaca es la diferencia de escala. Los
+rendimientos anuales de GMEXICOB van de −69.99% (2001) a 255.22%
+(2009), con una desviación estándar cercana a 68 puntos porcentuales,
+mientras que el crecimiento del PIB se mueve entre −8.35% (2020) y
+6.05% (2021), con una desviación estándar de aproximadamente 3 puntos.
+Por esa razón la línea del PIB parece casi plana al compartir el eje con
+las barras, aunque sus variaciones sean relevantes para la economía.
 
-# 5. Análisis de los periodos más recientes
+En cuanto a la dirección, ambas series tuvieron el mismo signo en 15 de
+los 26 años. Sin embargo, las discrepancias se concentran justamente en
+los años de crisis y recuperación. El PIB fue negativo en cinco años
+(2001, 2002, 2009, 2019 y 2020) y la acción solo cayó en uno de ellos,
+2001. A la inversa, la acción registró rendimientos negativos en ocho
+años (2000, 2001, 2008, 2011, 2013, 2015, 2018 y 2022) y en siete de
+ellos la economía mexicana creció.
 
-## 5.1 Eventos relevantes del último año
+La gráfica también sugiere un desfase temporal. En 2008 la acción cayó
+58.84% mientras el PIB todavía crecía 0.94%, y en 2009 la acción subió
+255.22% mientras el PIB se contraía 6.30%. Es decir, el mercado registró
+la crisis y la recuperación aproximadamente un año antes de que se
+reflejaran en la producción anual del país. Este patrón es compatible
+con la idea de que el precio de la acción responde a expectativas, y lo
+evaluamos numéricamente más adelante.
+:::
 
-## 5.2 Reflejo de dichos eventos en el precio y los rendimientos
+## Análisis de la relación con el ciclo económico
 
-# 6. Conclusión
+::: {style="text-align: justify;"}
+La gráfica muestra algunas coincidencias, pero no una relación constante
+entre GMEXICOB y el PIB mexicano. En 2001, por ejemplo, la acción
+registró un rendimiento de aproximadamente −69.99%, mientras que el PIB
+disminuyó alrededor de 0.45%. Ambas variables se movieron en la misma
+dirección, aunque con intensidades muy distintas. Esto indica que el
+deterioro del entorno puede coincidir con pérdidas bursátiles mucho
+mayores que la contracción de la economía.
+
+En otros años observamos diferencias claras. Durante 2000, el PIB creció
+aproximadamente 5.03%, mientras que el rendimiento del activo dentro de
+la muestra fue de −33.33%. En 2003, la acción aumentó 154.04%, frente a
+un crecimiento del PIB de alrededor de 1.19%. Estas diferencias muestran
+que el desempeño de Grupo México no depende exclusivamente de la
+actividad económica nacional.
+
+El caso de 2009 es especialmente ilustrativo, porque la acción obtuvo un
+rendimiento de 255.22% al mismo tiempo que el PIB mexicano se contrajo
+6.30%. Algo semejante ocurrió en 2020, cuando el PIB disminuyó 8.35%,
+mientras que el rendimiento anual de la acción fue de 71.75%. Esto no
+significa que la pandemia beneficiara de manera uniforme al activo, pues
+entre el 2 de enero y el 23 de marzo de 2020 el precio cayó alrededor de
+30.5%, sino que la recuperación posterior superó la pérdida inicial al
+comparar los extremos del año.
+
+La diferencia tiene sentido porque el precio de una acción incorpora
+expectativas, mientras que el PIB anual resume la producción realizada
+durante todo el periodo. El mercado puede comenzar a descontar una
+recuperación antes de que esta se refleje plenamente en la actividad
+económica. Además, Grupo México participa en mercados internacionales y
+está expuesto al precio mundial del cobre, por lo que cambios en China,
+Estados Unidos o la oferta minera pueden ser más relevantes para su
+valoración que una variación aislada del PIB mexicano.
+
+En 2025 vuelve a observarse esta separación, con un rendimiento bursátil
+de 78.80% y un crecimiento del PIB de aproximadamente 0.56% en la
+información utilizada.
+
+Para complementar la lectura visual calculamos el coeficiente de
+correlación de Pearson entre ambas series anuales,
+:::
+
+$$
+\rho=\frac{\sum_{a}\left(R_a-\bar{R}\right)\left(g_a-\bar{g}\right)}
+{\sqrt{\sum_{a}\left(R_a-\bar{R}\right)^2}\sqrt{\sum_{a}\left(g_a-\bar{g}\right)^2}},
+$$
+
+::: {style="text-align: justify;"}
+donde $R_a$ es el rendimiento anual de GMEXICOB y $g_a$ el crecimiento
+del PIB en el año $a$. El coeficiente toma valores entre −1 y 1: valores
+cercanos a 1 indican que ambas variables suben y bajan juntas, cercanos
+a −1 que se mueven en sentidos opuestos, y cercanos a 0 que no existe
+una relación lineal clara.
+:::
+
+```{r correlacion}
+cor.test(datos$rendimiento, datos$crecimiento_pib)
+```
+
+::: {style="text-align: justify;"}
+La correlación de Pearson es de aproximadamente −0.40, una relación
+negativa de magnitud moderada: en la muestra 2000-2025 los años de
+mayor rendimiento bursátil tendieron a coincidir con un crecimiento
+económico menor, y no mayor. Además, con solo 26 observaciones el valor p de la prueba de Pearson es de
+aproximadamente 0.044, apenas por debajo del umbral convencional de 5%,
+y su intervalo de confianza de 95% (de −0.68 a −0.01) casi incluye el
+cero, por lo que la evidencia estadística es débil.
+
+Para saber qué tanto depende el resultado de los años extremos,
+repetimos el cálculo excluyendo 2009 y 2020, y comparamos también el
+rendimiento de cada año con el crecimiento del PIB del año siguiente.
+:::
+
+```{r sensibilidad_correlacion}
+sin_2009 <- datos[datos$anio != 2009, ]
+sin_2020 <- datos[datos$anio != 2020, ]
+sin_ambos <- datos[!datos$anio %in% c(2009, 2020), ]
+
+c(
+  todos = cor(datos$rendimiento, datos$crecimiento_pib),
+  sin_2009 = cor(sin_2009$rendimiento, sin_2009$crecimiento_pib),
+  sin_2020 = cor(sin_2020$rendimiento, sin_2020$crecimiento_pib),
+  sin_2009_ni_2020 = cor(sin_ambos$rendimiento, sin_ambos$crecimiento_pib)
+)
+
+# Rendimiento del año a frente al crecimiento del PIB del año a + 1
+pib_siguiente <- c(datos$crecimiento_pib[-1], NA)
+
+cor(datos$rendimiento, pib_siguiente, use = "complete.obs")
+```
+
+::: {style="text-align: justify;"}
+El análisis de sensibilidad muestra que la correlación negativa depende
+casi por completo de 2009. Sin ese año, la correlación de Pearson pasa a
+−0.10; sin 2020 se mantiene en −0.43; y sin ambos años se vuelve
+ligeramente positiva (0.08). Por lo tanto, no conviene interpretar el
+−0.40 como una tendencia general de la acción a moverse en contra de la
+economía, sino como el efecto de un año excepcional en el que la acción
+se recuperó con fuerza mientras el PIB se contraía.
+
+En cambio, al comparar el rendimiento de cada año con el crecimiento
+del PIB del año siguiente, la correlación se vuelve positiva, con un
+valor de alrededor de 0.41. Este resultado es consistente
+con el desfase observado en 2008-2009: los años de buen rendimiento
+bursátil tendieron a anteceder años de mayor crecimiento económico. Lo
+tomamos como una evidencia descriptiva y no como una prueba de
+capacidad predictiva, puesto que se basa en solo 25 pares de
+observaciones.
+
+A partir de estos resultados, consideramos que GMEXICOB presenta
+sensibilidad al ciclo industrial y de materias primas, pero no
+reproduce de manera contemporánea el ciclo económico de México; su
+relación con la economía nacional parece darse más bien de forma
+anticipada. Debemos recordar, además, que la correlación no implica
+causalidad.
+:::
+
+# Análisis de los periodos más recientes
+
+## Eventos relevantes del último año
+
+::: {style="text-align: justify;"}
+Para mantener coherencia con el corte de las gráficas, analizamos el
+periodo del 1 de julio de 2025 al 30 de junio de 2026.
+
+En julio de 2025, los anuncios estadounidenses sobre aranceles al cobre
+introdujeron incertidumbre en ese mercado. La disposición del 30 de
+julio estableció un arancel de 50% sobre determinados productos
+semielaborados y derivados intensivos en cobre, pero excluyó minerales,
+concentrados y cobre refinado, entre otros productos. Esta distinción es
+relevante porque no corresponde afirmar que todas las exportaciones de
+cobre de Grupo México quedaron sujetas al mismo gravamen. Para el
+activo, el efecto potencial provenía de cambios en las expectativas
+comerciales y en los precios relativos del metal ([The White House,
+2025](https://www.whitehouse.gov/fact-sheets/2025/07/fact-sheet-president-donald-j-trump-takes-action-to-address-the-threat-to-national-security-from-imports-of-copper/)).
+
+Un acontecimiento empresarial particularmente claro fue la propuesta de
+adquisición de Banamex anunciada por Grupo México el 3 de octubre de
+2025. El 6 de octubre, la prensa financiera registró una caída de 15.43%
+en sus acciones; en nuestra serie de precios ajustados de Yahoo Finance,
+el rendimiento de cierre a cierre de ese día fue de −14.99%, la
+diferencia puede atribuirse al precio de referencia utilizado por cada
+fuente. Posteriormente, la empresa aclaró que el crédito máximo que
+requeriría la operación sería menor a 2 mil millones de dólares, por lo
+que no esperaba incrementar significativamente su deuda, y que
+mantendría sus proyectos de inversión. Interpretamos que la reacción estuvo relacionada con dudas
+sobre la asignación de capital y la incorporación de un negocio distinto
+de sus principales operaciones ([López,
+2025](https://www.bloomberglinea.com/latinoamerica/mexico/grupo-mexico-defiende-propuesta-de-compra-de-banamex-tras-desplome-de-la-accion/);
+[Grupo México,
+2025](https://www.bmv.com.mx/docs-pub/eventemi/eventemi_1497656_1.pdf)).
+
+En cuanto a resultados, el reporte del cuarto trimestre de 2025,
+publicado en enero de 2026, presentó un crecimiento anual de ventas de
+12.4%. El precio de referencia LME del cobre aumentó 8.7% durante 2025,
+aunque la producción del metal disminuyó 1.5%. Este contraste muestra
+que los ingresos pueden mejorar aun con menor producción cuando los
+precios de venta y los subproductos compensan esa disminución ([Grupo
+México,
+2026a](https://www.gmexico.com/GMDocs/ReportesFinancieros/Esp/2025/RF_ES_2025_4T.pdf)).
+
+Los resultados del primer trimestre de 2026 también mostraron una
+mejora. El comunicado fechado el 28 de abril reportó ventas consolidadas
+de aproximadamente US$5,565 millones, 32.7% superiores a las del mismo
+trimestre de 2025, y un incremento de 49.6% en EBITDA. La producción de
+cobre disminuyó 2.8%, mientras que su precio de referencia LME aumentó
+37.5% interanual. Nuevamente observamos que el entorno de precios tuvo
+un papel relevante en el desempeño del negocio ([Grupo México, 2026b,
+comunicado reproducido por
+MarketScreener](https://es.marketscreener.com/noticias/grupo-mexico-b-de-c-primer-trimestre-report-rf-es-2026-1t-ce7f58dadc8af324)).
+
+El 27 de abril de 2026, Grupo México anunció un acuerdo para combinar
+activos de generación eléctrica con Saavi Energía, en una plataforma
+cuya participación prevista sería de 70% para Grupo México. Al cierre de
+nuestro análisis, el acuerdo estaba sujeto a autorizaciones, por lo que
+lo consideramos una expectativa de expansión y diversificación, sin
+tratarlo como una operación ya concluida ([Grupo México,
+2026c](https://www.bmv.com.mx/docs-pub/eventemi/eventemi_1551582_1.pdf)).
+
+Finalmente, la tasa objetivo del Banco de México pasó de 8.00% al inicio
+de julio de 2025 a 6.50% en junio de 2026. Una reducción de tasas puede
+favorecer la valoración de las acciones al modificar el rendimiento
+requerido y su atractivo frente a instrumentos de deuda, aunque este
+efecto no garantiza una subida y debe analizarse junto con el tipo de
+cambio y el entorno internacional ([Banco de México,
+2025](https://www.banxico.org.mx/publicaciones-y-prensa/anuncios-de-las-decisiones-de-politica-monetaria/%7B7774AEE4-AF2E-9A74-A34C-EDB53F483361%7D.pdf);
+[Banco de México,
+2026](https://www.banxico.org.mx/publicaciones-y-prensa/anuncios-de-las-decisiones-de-politica-monetaria/%7BF6667DDE-E87D-68A3-0EBB-A4DF9048E403%7D.pdf)).
+:::
+
+## Reflejo de dichos eventos en el precio y los rendimientos
+
+::: {style="text-align: justify;"}
+El tramo final de la gráfica muestra una apreciación importante durante
+2025 y el primer semestre de 2026, acompañada de correcciones.
+Consideramos que esta trayectoria es compatible con un entorno favorable
+de precios de metales y con la mejora de resultados reportada por la
+empresa. Sin embargo, el avance comenzó antes de la publicación de
+algunos reportes, por lo que no sería correcto atribuir toda la subida a
+la fecha en que se divulgaron. Parte de esa información pudo
+incorporarse gradualmente mediante expectativas sobre el cobre y la
+operación.
+
+La propuesta por Banamex permite observar un mecanismo diferente, porque
+introdujo incertidumbre sobre una decisión propia de la empresa. La
+caída de cerca de 15% del 6 de octubre de 2025 (−14.99% en nuestra
+serie) ocurrió dentro de un periodo de tendencia general ascendente, en
+el que la acción acumuló 78.80% en 2025 y aproximadamente 79.2% entre el
+1 de julio de 2025 y el 30 de junio de 2026, lo que muestra que un buen
+rendimiento acumulado no evita pérdidas intensas en una sola sesión.
+
+Los anuncios comerciales y las decisiones de tasas también pudieron
+modificar las expectativas, aunque con las gráficas disponibles no
+podemos separar sus efectos ni asignarles un porcentaje específico del
+rendimiento. Un cambio arancelario puede beneficiar a ciertos
+productores y afectar a otros, mientras que una reducción de tasas puede
+coincidir con preocupaciones sobre el crecimiento que compensen su
+efecto favorable.
+
+Por ello, interpretamos el periodo reciente como la combinación de
+mejores condiciones para la generación de utilidades y episodios de
+nueva incertidumbre. La acción respondió a información sobre su negocio
+y sobre el entorno, sin seguir una trayectoria uniforme ni predecible.
+Para estudiar con mayor precisión cada reacción sería necesario ampliar
+las gráficas alrededor de las fechas de los anuncios y comparar el
+movimiento de GMEXICOB con el del mercado.
+:::
+
+# Conclusión
+
+::: {style="text-align: justify;"}
+El análisis muestra que GMEXICOB ha generado una apreciación
+considerable durante la muestra, pero esa trayectoria estuvo acompañada
+de pérdidas profundas y recuperaciones de distinta duración. El máximo
+drawdown de 84.01% permite dimensionar un riesgo que no se aprecia con
+claridad al observar únicamente el precio final, puesto que una
+inversión puede terminar con un resultado favorable y, aun así, haber
+enfrentado una pérdida difícil de soportar durante varios años.
+
+Los periodos estudiados también muestran que el precio responde a
+distintos tipos de información. La debilidad de los metales y la presión
+financiera a comienzos de los años dos mil, la crisis de 2008, las
+tensiones comerciales, la pandemia y el endurecimiento monetario de 2022
+afectaron las perspectivas de ingresos y el riesgo percibido. El caso de
+Banamex añade que las decisiones corporativas pueden provocar
+movimientos relevantes incluso dentro de un entorno favorable para la
+actividad principal del grupo.
+
+La comparación con el PIB nos permitió comprender que el ciclo económico
+mexicano aporta contexto, pero no explica por sí solo el comportamiento
+de la acción. La correlación contemporánea entre ambas series es
+negativa (−0.40), pero depende casi por
+completo de 2009, mientras que el rendimiento de cada año se relaciona
+positivamente con el crecimiento del año siguiente, lo que sugiere que
+el mercado se anticipa a la economía. Grupo México participa en mercados internacionales y sus
+inversionistas valoran resultados futuros, por ello la cotización puede
+recuperarse mientras la economía todavía se contrae o aumentar con
+fuerza durante un año de bajo crecimiento nacional. Además, el
+rendimiento anual puede ocultar pérdidas y recuperaciones importantes
+dentro del mismo periodo.
+
+A partir de este ejercicio, entendemos que analizar el riesgo requiere
+considerar la magnitud de las variaciones, el tiempo de recuperación y
+los mecanismos por los que cambia la valoración. Los acontecimientos
+históricos ayudan a construir explicaciones y escenarios, aunque no
+permiten anticipar con certeza la siguiente crisis o la reacción del
+mercado. Para un inversionista, esta incertidumbre implica que conocer
+bien la empresa mejora la calidad de sus decisiones, pero no elimina la
+exposición a noticias, choques externos y cambios de expectativas que
+están fuera de su control.
+:::
+
+# Referencias
+
+::: {style="text-align: justify;"}
+Banco de México. (2025, 26 de junio). *[Anuncio de política
+monetaria](https://www.banxico.org.mx/publicaciones-y-prensa/anuncios-de-las-decisiones-de-politica-monetaria/%7B7774AEE4-AF2E-9A74-A34C-EDB53F483361%7D.pdf)*.
+
+Banco de México. (2026, 25 de junio). *[Anuncio de política
+monetaria](https://www.banxico.org.mx/publicaciones-y-prensa/anuncios-de-las-decisiones-de-politica-monetaria/%7BF6667DDE-E87D-68A3-0EBB-A4DF9048E403%7D.pdf)*.
+
+Banco Mundial. (2008). *[Global economic prospects 2008: Technology
+diffusion in the developing
+world](https://www.worldbank.org/content/dam/Worldbank/GEP/GEParchives/GEP2008/42097optmzd0REVISED0GEP020081PUBLIC1.pdf)*.
+
+Banco Mundial. (2020, octubre). *[Commodity markets
+outlook](https://thedocs.worldbank.org/en/doc/f448acf308cc7ba2de536ac5b438b93c-0350012020/original/CMO-October-2020.pdf)*.
+
+Banco Mundial. (s. f.). *[GDP growth (annual %) —
+Mexico](https://data.worldbank.org/indicator/NY.GDP.MKTP.KD.ZG?locations=MX)*
+[Conjunto de datos]. World Development Indicators. Recuperado el 22 de
+septiembre de 2026.
+
+Fondo Monetario Internacional. (2009). *[World economic outlook, April
+2009: Crisis and
+recovery](https://www.imf.org/-/media/websites/imf/imported-flagship-issues/external/pubs/ft/weo/2009/01/pdf/_textpdf.pdf)*.
+
+Fondo Monetario Internacional. (2011). *[Regional economic outlook:
+Europe. Navigating stormy
+waters](https://www.imf.org/external/pubs/ft/reo/2011/eur/eng/pdf/ereo1011.pdf)*.
+
+Grupo México. (2018, 24 de octubre). *[Resultados. Tercer trimestre
+2018](https://www.gmexico.com/GMDocs/ReportesFinancieros/Esp/2018/RF_ES_2018_3T.pdf)*.
+
+Grupo México. (2022a, 1 de febrero). *[Results. Fourth quarter
+2021](https://www.gmexico.com/GMDocs/ReportesFinancieros/ING/2021/RF_EN_2021_4Q.pdf)*.
+
+Grupo México. (2022b, 27 de octubre). *[Resultados. Tercer trimestre
+2022](https://www.gmexico.com/GMDocs/Home/Esp/Reporte_3er_Trimestre_2022.pdf)*.
+
+Grupo México. (2025, 7 de octubre). *[Grupo México no incrementaría de
+manera significativa su deuda en caso de que se acepte su oferta por
+Banamex](https://www.bmv.com.mx/docs-pub/eventemi/eventemi_1497656_1.pdf)*
+[Comunicado]. Bolsa Mexicana de Valores.
+
+Grupo México. (2026a, 27 de enero). *[Resultados. Cuarto trimestre
+2025](https://www.gmexico.com/GMDocs/ReportesFinancieros/Esp/2025/RF_ES_2025_4T.pdf)*.
+
+Grupo México. (2026b, 28 de abril). *[Resultados. Primer trimestre
+2026](https://es.marketscreener.com/noticias/grupo-mexico-b-de-c-primer-trimestre-report-rf-es-2026-1t-ce7f58dadc8af324)*
+[Comunicado reproducido por MarketScreener].
+
+Grupo México. (2026c, 27 de abril). *[Grupo México anuncia la
+combinación estratégica de sus activos de generación de energía con
+Saavi
+Energía](https://www.bmv.com.mx/docs-pub/eventemi/eventemi_1551582_1.pdf)*
+[Comunicado]. Bolsa Mexicana de Valores.
+
+Helbling, T. (2009, 30 de diciembre). *[Commodity prices buoyant in year
+of crisis,
+recovery](https://www.imf.org/en/news/articles/2015/09/28/04/53/sores123009a)*.
+Fondo Monetario Internacional.
+
+López, I. (2025, 7 de octubre). *[Grupo México defiende propuesta de
+compra de Banamex tras desplome de la
+acción](https://www.bloomberglinea.com/latinoamerica/mexico/grupo-mexico-defiende-propuesta-de-compra-de-banamex-tras-desplome-de-la-accion/)*.
+Bloomberg Línea.
+
+Reserva Federal. (2022, 21 de septiembre). *[Federal Reserve issues FOMC
+statement](https://www.federalreserve.gov/newsevents/pressreleases/monetary20220921a.htm)*.
+
+Southern Peru Copper Corporation. (2005). *[Definitive proxy statement
+(Schedule
+14A)](https://www.sec.gov/Archives/edgar/data/1001838/000104746905004703/a2152163zdef14a.htm)*.
+U.S. Securities and Exchange Commission.
+
+The White House. (2025, 30 de julio). *[Fact sheet: President Donald J.
+Trump takes action to address the threat to national security from
+imports of
+copper](https://www.whitehouse.gov/fact-sheets/2025/07/fact-sheet-president-donald-j-trump-takes-action-to-address-the-threat-to-national-security-from-imports-of-copper/)*.
+
+Yahoo. (s. f.). *[What is the adjusted
+close?](https://help.yahoo.com/kb/SLN28256.html)*. Yahoo Help.
+
+Yahoo Finance. (s. f.). *[Grupo México, S.A.B. de C.V. (GMEXICOB.MX):
+Historical data](https://finance.yahoo.com/quote/GMEXICOB.MX/history/)*
+[Conjunto de datos]. Serie utilizada en el documento para el periodo del
+3 de enero de 2000 al 30 de junio de 2026.
+:::
