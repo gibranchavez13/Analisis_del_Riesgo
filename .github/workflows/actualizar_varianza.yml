@@ -1,36 +1,38 @@
 name: Estimar varianza diaria
-
+ 
 on:
   schedule:
-    - cron: "30 23 * * 1-5"   # lunes a viernes, 23:30 UTC = 17:30 hora de Ciudad de México
+    - cron: "17 23 * * 1-5"   # lunes a viernes, 23:17 UTC = 17:17 hora de Ciudad de México
+    - cron: "17 1 * * 2-6"    # segundo intento: 01:17 UTC (martes a sábado) = 19:17 de lunes a viernes en Ciudad de México
   workflow_dispatch:           # permite ejecutarlo a mano desde la pestaña Actions
-
+ 
 permissions:
   contents: write
-
+ 
 jobs:
   estimar:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+ 
       - uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
-
+ 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           packages: |
             any::quantmod
             any::openxlsx
-
+ 
       - name: Ejecutar estimación
         run: Rscript estimar_varianza.R
-
+ 
       - name: Commit y push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add varianza_estimada.xlsx
-          git diff --cached --quiet || git commit -m "Estimación con dato del $(date +'%Y-%m-%d')"
+          git diff --cached --quiet || git commit -m "Estimación con dato del $(TZ=America/Mexico_City date +'%Y-%m-%d')"
           git push
+ 
