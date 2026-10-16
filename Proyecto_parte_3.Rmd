@@ -1,0 +1,734 @@
+---
+title: "Grupo México, S.A.B. de C.V."
+subtitle: "Acción Serie B — GMEXICOB"
+lang: es                   # idioma español (para la división de palabras)
+output:
+  html_document:
+    theme: sandstone          
+    highlight: monochrome 
+    toc: true              # activa el índice
+    toc_depth: 2           # muestra secciones (#) y subsecciones (##)
+    toc_float:
+      collapsed: true      # las subsecciones se despliegan al navegar
+      smooth_scroll: true
+    #number_sections: true  # enumerar
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{css, echo=FALSE}
+/* Texto justificado en el cuerpo del documento (no afecta portada, índice, tablas ni código) */
+.section p,
+.section li {
+  text-align: justify;
+  hyphens: auto;
+  line-height: 1.6;
+}
+```
+
+<img src="https://companieslogo.com/img/orig/GMBXF_BIG-0ff7026f.png?t=1720244492"/>
+
+:::: {style="text-align: center;"}
+**INTEGRANTES**
+
+::: {style="text-align: center;"}
+Gibrán Chávez\
+Carlos Nieves\
+Pablo Tafolla\
+Carlos Romo
+:::
+
+**Materia:** Análisis del Riesgo\
+**Docente:** María del Rosario Ruiz Hernández\
+**Fecha:** 15 de octubre de 2026
+::::
+
+# 1. Introducción
+
+En esta tercera entrega se analiza el comportamiento de la acción serie
+B de Grupo México (GMEXICOB), que cotiza en la Bolsa Mexicana de
+Valores, utilizando precios diarios desde el año 2000 hasta el 31 de
+diciembre de 2025. El propósito del estudio es medir el rendimiento y el
+riesgo (volatilidad) de la acción, revisar si los datos cumplen los
+supuestos del modelo de Movimiento Browniano Geométrico (GBM) y utilizar
+ese modelo para estimar precios futuros junto con su nivel de
+incertidumbre.
+
+El documento se organiza de la siguiente manera. En la sección 2 se
+calculan los rendimientos logarítmicos y la volatilidad, tanto para el
+periodo 2021–2025 en conjunto como año por año. En la sección 3 se
+aplican pruebas estadísticas para revisar si los rendimientos y los
+precios siguen una distribución normal y si el rendimiento promedio es
+distinto de cero. En las secciones 4 y 5 se estima el GBM con parámetros
+diarios y anuales, respectivamente, para proyectar el precio a distintos
+horizontes con intervalos de confianza al 95%. Por último, en la sección
+6 se discuten las diferencias entre los supuestos del modelo y los datos
+reales, y en la sección 7 se presentan las conclusiones.
+
+# 2. Cálculo de rendimientos y volatilidad
+
+Para el activo seleccionado, bajar los datos de todo el periodo de
+cotización hasta el último día de diciembre 2025 y con la información:
+
+```{r, message=FALSE, warning=FALSE}
+library(quantmod); library(moments); library(WDI); library(ggplot2); library(PerformanceAnalytics)
+```
+
+```{r}
+ticker <- 'GMEXICOB.MX'
+
+getSymbols(
+  ticker,
+  src = 'yahoo',
+  from = '2000-01-01',
+  to = '2026-01-01'
+)
+
+```
+
+```{r}
+price <- Ad(get(ticker))
+
+log_price <- log(price)
+
+head(cbind(price, log_price))
+```
+
+## a) Rendimiento logarítmico
+
+Calcular el rendimiento logarítmico diario:
+
+```{r}
+log_rend <- dailyReturn(price, type='log')
+
+head(log_rend)
+```
+
+## b) Estimaciones utilizando toda la información disponible desde 2021 hasta lo que va 2026
+
+- Rendimiento promedio diario
+- Volatilidad diaria
+- Rendimiento promedio anual (anualizando la media diaria)
+- Volatilidad anual (anualizando la desviación estándar diaria)
+
+```{r}
+DIAS_COTIZACION <- 252
+
+mean_rend_diario <- mean(log_rend['2021/'])
+vol_diaria <- sd(log_rend['2021/'])
+mean_rend_anual <- mean_rend_diario * DIAS_COTIZACION
+vol_anual <- vol_diaria * sqrt(DIAS_COTIZACION)
+
+estimaciones <- rbind(
+  'Rendimiento promedio diario' = mean_rend_diario,
+  'Rendimiento promedio anual' = mean_rend_anual,
+  'Volatilidad diaria' = vol_diaria,
+  'Volatilidad anual' = vol_anual
+)
+
+knitr::kable(estimaciones)
+```
+
+## c) Estimaciones año por año, es decir, 2021, 2022, etc.
+
+- Rendimiento promedio diario del año
+- Volatilidad diaria del año
+- Rendimiento anual del año
+- Volatilidad anual del año
+
+```{r}
+log_rend_x_anio <- split(log_rend, 'years')
+```
+
+```{r}
+log_rend_21_adelante <- log_rend['2021/']
+
+est_por_anio <- do.call(rbind, lapply(split(log_rend_21_adelante, 'years'), function(r) {
+  data.frame(
+    'Año'                         = format(start(r), '%Y'),
+    'Días'                        = nrow(r),
+    'Rendimiento promedio diario' = mean(r),
+    'Volatilidad diaria'          = sd(r),
+    'Rendimiento anual'           = mean(r) * DIAS_COTIZACION,
+    'Volatilidad anual'           = sd(r) * sqrt(DIAS_COTIZACION),
+    check.names = FALSE
+  )
+}))
+
+knitr::kable(est_por_anio, row.names = FALSE)
+```
+
+## d) Interpretación
+
+Interpretar los resultados obtenidos:
+
+- ¿Existen cambios estructurales?
+- ¿Hay años con volatilidad particularmente elevada?
+- ¿Se observan periodos de mayor riesgo?
+
+Los resultados año por año muestran que el riesgo de GMEXICOB no fue
+constante. En 2021, 2023, 2024 y 2025 la volatilidad anual se mantuvo en
+un rango estrecho, de aproximadamente 33% a 36%. En cambio, en 2022
+subió a cerca de 46%, y ese mismo año fue el único con rendimiento
+negativo (alrededor de −21% anualizado). Por lo tanto, **2022 es el año
+con volatilidad particularmente elevada y el periodo de mayor riesgo**
+dentro de la muestra. Este comportamiento coincide con un entorno
+difícil para los mercados: los bancos centrales subieron las tasas de
+interés para controlar la inflación, comenzó la guerra en Ucrania y el
+precio del cobre, el principal producto de la empresa, cayó de forma
+importante a mitad de año.
+
+Respecto a los cambios estructurales, los datos no muestran un cambio
+permanente en el nivel de riesgo, sino un episodio temporal. Después de
+2022 la volatilidad regresó a niveles muy parecidos a los de 2021 y se
+mantuvo estable. Lo que sí cambia mucho de un año a otro es el
+rendimiento: pasó de −21% en 2022 a 37% en 2023, bajó a 9% en 2024 y
+llegó a 58% en 2025. Esto muestra que el rendimiento promedio es mucho
+menos estable que la volatilidad y, por lo tanto, más difícil de estimar
+con pocos datos.
+
+Para poner estos números en contexto, con los mismos datos desde el año
+2000 se observa que la volatilidad de 2022 es similar a la de 2020
+(pandemia, cerca de 42%), pero menor que la de la crisis financiera de
+2008 (cerca de 70%). Es decir, GMEXICOB es una acción de riesgo alto en
+general, y en momentos de crisis ese riesgo aumenta todavía más.
+
+# 3. Pruebas estadísticas
+
+Utilizando toda la información disponible hasta 2025, realizar:
+
+## a) Pruebas de normalidad (Jarque-Bera)
+
+Aplicar la prueba de normalidad a:
+
+- Rendimientos
+- Precio
+- Logaritmo natural del precio
+- Estimar asimetría/curtosis de cada serie
+
+```{r}
+series <- list(
+  'Rendimientos Log'  = as.numeric(log_rend[-1]),
+  'Precio'            = as.numeric(price),
+  'Log del precio'    = as.numeric(log_price)
+)
+
+pruebas_normalidad <- do.call(rbind, lapply(series, function(x) {
+  jb <- jarque.test(x)
+  data.frame(
+    'Asimetría'         = skewness(x),
+    'Curtosis'          = kurtosis(x),
+    'Exceso de curtosis'= kurtosis(x) - 3,
+    'Estadístico JB'    = unname(jb$statistic),
+    'p-value'           = jb$p.value,
+    check.names = FALSE
+  )
+}))
+
+knitr::kable(pruebas_normalidad)
+```
+
+La prueba de Jarque-Bera tiene como hipótesis nula que la serie sigue
+una distribución normal. En las tres series el p-value es prácticamente
+cero, así que **se rechaza la normalidad en todos los casos**.
+
+- **Rendimientos:** la asimetría es casi cero (−0.09), por lo que la
+  distribución es prácticamente simétrica. Sin embargo, la curtosis es
+  de aproximadamente 7.9, muy por arriba del valor de 3 de una
+  distribución normal. Esto significa que los rendimientos tienen
+  **colas pesadas**: los días con movimientos muy grandes, tanto de
+  subida como de bajada, ocurren con mucha más frecuencia de lo que
+  predice la normal. Por ejemplo, en la muestra hay 99 días con
+  movimientos mayores a tres desviaciones estándar, cuando bajo
+  normalidad se esperarían alrededor de 18.
+- **Precio:** tiene una asimetría positiva marcada (1.44), es decir, una
+  cola larga hacia la derecha. La mayor parte del tiempo el precio
+  estuvo en niveles bajos o medios, y solo en algunos periodos alcanzó
+  niveles muy altos. Esto es lo que se esperaría si el precio fuera
+  lognormal: no puede ser negativo, pero no tiene un límite superior.
+- **Logaritmo del precio:** según el GBM debería ser normal, pero
+  también se rechaza (asimetría de −0.67 y curtosis de 2.29). Hay que
+  tomar este resultado con cuidado: el logaritmo del precio no es un
+  conjunto de datos independientes, sino una serie con tendencia en la
+  que cada valor depende del anterior. Por eso la prueba de Jarque-Bera
+  no es la más adecuada para niveles de precio, y la prueba realmente
+  importante es la de los rendimientos.
+
+En términos financieros, el resultado más relevante es el de los
+rendimientos. Si se usa la distribución normal para medir el riesgo, se
+subestima la probabilidad de pérdidas grandes. Por ejemplo, con la
+normal, la pérdida diaria que solo se supera el 1% de los días es de
+aproximadamente 5.6%, mientras que con los datos reales es de cerca de
+6.3%.
+
+## b) Prueba de media igual a cero
+
+Se plantea el siguiente contraste sobre la media $\mu$ de los
+rendimientos logarítmicos diarios:
+
+$$H_0: \mu = 0 \qquad \text{vs.} \qquad H_1: \mu \neq 0$$
+
+con el estadístico
+
+$$t = \frac{\bar{r}}{s / \sqrt{n}} \sim t_{n-1}$$
+
+donde $\bar{r}$ es el rendimiento promedio diario, $s$ la desviación
+estándar muestral y $n$ el número de observaciones.
+
+```{r}
+rend <- series[['Rendimientos Log']]
+
+prueba_t <- t.test(rend, mu = 0)
+prueba_t
+```
+
+```{r}
+resultado_t <- data.frame(
+  'Media diaria'      = unname(prueba_t$estimate),
+  'Error estándar'    = unname(prueba_t$stderr),
+  'Estadístico t'     = unname(prueba_t$statistic),
+  'Grados de libertad'= unname(prueba_t$parameter),
+  'p-value'           = prueba_t$p.value,
+  'IC 95% inferior'   = prueba_t$conf.int[1],
+  'IC 95% superior'   = prueba_t$conf.int[2],
+  check.names = FALSE
+)
+
+knitr::kable(resultado_t)
+```
+
+Con $n =$ `r length(rend)` observaciones, el estadístico es $t =$
+`r round(prueba_t$statistic, 4)` con un p-value de
+`r round(prueba_t$p.value, 4)`. Por lo tanto, al 5% de significancia
+`r ifelse(prueba_t$p.value < 0.05, "se rechaza", "no se rechaza")`
+$H_0$, y al 1%
+`r ifelse(prueba_t$p.value < 0.01, "también se rechaza", "no se rechaza")`.
+El intervalo de confianza al 95% para la media diaria es
+[`r format(round(prueba_t$conf.int[1], 6), scientific = FALSE)`,
+`r format(round(prueba_t$conf.int[2], 6), scientific = FALSE)`].
+
+Aun cuando la prueba t supone normalidad y los rendimientos no son
+normales (inciso a), el tamaño de muestra es muy grande, por lo que, por
+el Teorema Central del Límite, la distribución de $\bar{r}$ es
+aproximadamente normal y la prueba sigue siendo válida.
+
+## c) Interpretación
+
+En su forma débil, la hipótesis de mercados eficientes dice que con los
+precios pasados no se pueden predecir los rendimientos futuros, es
+decir, que no existen ganancias "fáciles" y sistemáticas. La prueba t
+muestra que el rendimiento promedio diario (cerca de 0.07%) es apenas
+significativo al 5% y no lo es al 1%. Además, es muy pequeño comparado
+con la volatilidad diaria (cerca de 2.4%): en un día normal el precio se
+mueve unas 36 veces más de lo que aporta la media. Por lo tanto, aunque
+en el largo plazo la acción ha tenido un rendimiento positivo, en el día
+a día ese rendimiento queda escondido por el ruido y no representa una
+oportunidad de ganancia predecible. Esto es consistente con un mercado
+eficiente en su forma débil.
+
+Que el rendimiento promedio sea positivo tampoco contradice la
+eficiencia. La teoría financiera indica que los inversionistas piden un
+premio por asumir riesgo, y una acción con una volatilidad anual cercana
+a 38% debería ofrecer, en promedio, un rendimiento positivo. Cabe
+aclarar que la prueba t no revisa si los rendimientos de un día dependen
+de los días anteriores; para una conclusión más completa sobre
+eficiencia habría que aplicar también pruebas de autocorrelación.
+
+El GBM supone que los rendimientos son normales, independientes y con
+media y volatilidad constantes. Los resultados coinciden con el modelo
+en parte: la media es pequeña y positiva, y la escala de la volatilidad
+es razonablemente estable en el largo plazo. Sin embargo, la prueba de
+Jarque-Bera muestra colas pesadas y en la sección 2 se vio que la
+volatilidad cambia de un año a otro. Por lo tanto, el GBM sirve como una
+buena aproximación general, pero subestima los eventos extremos.
+
+# 4. Estimación del modelo con parámetros diarios
+
+Utilizando los parámetros diarios estimados para todo el periodo:
+
+- Construir la ecuación del modelo (GBM, ds).
+- Utilizar como valor inicial $S_0$ el último precio de cotización de
+  2025. 
+- Estimar el precio esperado dentro de:
+  - 10 días
+  - 20 días
+  - 40 días
+- Construir un intervalo de confianza al 95% para cada estimación.
+- Incluir la ecuación utilizada y explicar claramente el procedimiento
+  de simulación.
+- Interpretación: Discutir la magnitud de la incertidumbre asociada a
+  cada horizonte temporal.
+
+El precio sigue un Movimiento Browniano Geométrico (GBM):
+
+$$dS_t = \mu S_t\,dt + \sigma S_t\,dW_t$$ cuya solución es
+
+$$S_t = S_0 \exp\left[\left(\mu - \tfrac{\sigma^2}{2}\right)t + \sigma W_t\right],
+\qquad W_t \sim N(0, t)$$
+
+Por lo tanto
+$\ln S_t \sim N\left(\ln S_0 + (\mu - \tfrac{\sigma^2}{2})t,\; \sigma^2 t\right)$,
+es decir, el precio es lognormal. De aquí:
+
+$$E[S_t] = S_0 e^{\mu t}$$
+
+$$IC_{95\%}: \left[S_0 e^{(\mu - \sigma^2/2)t - 1.96\,\sigma\sqrt{t}},\;
+S_0 e^{(\mu - \sigma^2/2)t + 1.96\,\sigma\sqrt{t}}\right]$$
+
+donde $\mu - \sigma^2/2$ es la media de los rendimientos logarítmicos
+diarios, $\sigma$ su desviación estándar y $t$ se mide en días.
+
+```{r}
+rend_total <- as.numeric(log_rend[-1])     # 2000–2025, sin el 0 inicial
+
+m_diaria     <- mean(rend_total)            # media log-rendimientos = mu - sigma^2/2
+sigma_diaria <- sd(rend_total)
+mu_diaria    <- m_diaria + sigma_diaria^2 / 2   # drift del GBM
+
+S0 <- as.numeric(last(price))               # último precio de 2025
+
+knitr::kable(data.frame(
+  'Parámetro' = c('S0 (31/12/2025)', 'm = mu - sigma^2/2', 'sigma', 'mu'),
+  'Valor'     = c(S0, m_diaria, sigma_diaria, mu_diaria),
+  check.names = FALSE
+))
+```
+
+```{r}
+horizontes <- c(10, 20, 40)
+z <- qnorm(0.975)
+
+gbm_diario <- data.frame(
+  'Días'            = horizontes,
+  'Precio esperado' = S0 * exp(mu_diaria * horizontes),
+  'Mediana'         = S0 * exp(m_diaria * horizontes),
+  'IC 95% inferior' = S0 * exp(m_diaria * horizontes - z * sigma_diaria * sqrt(horizontes)),
+  'IC 95% superior' = S0 * exp(m_diaria * horizontes + z * sigma_diaria * sqrt(horizontes)),
+  check.names = FALSE
+)
+gbm_diario$`Amplitud IC` <- gbm_diario$`IC 95% superior` - gbm_diario$`IC 95% inferior`
+
+knitr::kable(gbm_diario)
+```
+
+```{r}
+set.seed(123)
+N <- 10000
+T_max <- max(horizontes)
+
+Z <- matrix(rnorm(N * T_max), nrow = N, ncol = T_max)
+trayectorias <- S0 * exp(t(apply(m_diaria + sigma_diaria * Z, 1, cumsum)))
+
+sim_diario <- data.frame(
+  'Días'               = horizontes,
+  'Promedio simulado'  = sapply(horizontes, function(d) mean(trayectorias[, d])),
+  'Percentil 2.5%'     = sapply(horizontes, function(d) quantile(trayectorias[, d], 0.025)),
+  'Percentil 97.5%'    = sapply(horizontes, function(d) quantile(trayectorias[, d], 0.975)),
+  check.names = FALSE
+)
+
+knitr::kable(sim_diario)
+```
+
+```{r}
+matplot(0:T_max, t(cbind(S0, trayectorias[1:100, ])), type = 'l', lty = 1,
+        col = adjustcolor('steelblue', 0.3), xlab = 'Días', ylab = 'Precio',
+        main = 'Simulación GBM — GMEXICOB (parámetros diarios)')
+```
+
+Para la simulación de Monte Carlo se siguieron estos pasos:
+
+1.  Se estimaron $m = \mu - \sigma^2/2$ y $\sigma$ con los rendimientos
+    logarítmicos diarios de 2000 a 2025.
+2.  Se generaron números aleatorios $Z \sim N(0,1)$, uno por cada día y
+    por cada trayectoria (10,000 trayectorias de 40 días).
+3.  Cada día el precio se actualizó con
+    $S_{t+1} = S_t\, e^{\,m + \sigma Z_{t+1}}$, que es la solución
+    exacta del GBM para un paso de un día.
+4.  Para cada horizonte (10, 20 y 40 días) se tomó el precio de las
+    10,000 trayectorias: el promedio estima el precio esperado y los
+    percentiles 2.5% y 97.5% forman el intervalo de confianza al 95%.
+
+Se fijó una semilla (`set.seed(123)`) para que los resultados se puedan
+reproducir.
+
+Los resultados de la simulación prácticamente coinciden con los de las
+fórmulas, lo que confirma que el procedimiento es correcto.
+
+El precio esperado crece muy poco: pasa de `r round(S0, 2)` a
+`r round(gbm_diario[['Precio esperado']][3], 2)` en 40 días, un aumento
+de alrededor de 4%. En cambio, los intervalos de confianza son amplios.
+A 10 días el precio podría estar entre
+`r round(gbm_diario[['IC 95% inferior']][1], 2)` y
+`r round(gbm_diario[['IC 95% superior']][1], 2)` (un rango de cerca de
+30% del precio actual), y a 40 días entre
+`r round(gbm_diario[['IC 95% inferior']][3], 2)` y
+`r round(gbm_diario[['IC 95% superior']][3], 2)` (un rango de cerca de
+62%). Es decir, incluso en horizontes cortos, la incertidumbre es mucho
+mayor que el cambio esperado en el precio.
+
+La incertidumbre crece con la raíz cuadrada del tiempo y no de forma
+proporcional: al pasar de 10 a 40 días (cuatro veces más tiempo), la
+amplitud del intervalo aproximadamente se duplica. Además, los
+intervalos no son simétricos: a 40 días el límite inferior está cerca de
+24% por debajo del precio actual, mientras que el superior está cerca de
+39% por arriba. Esto pasa porque el precio sigue una distribución
+lognormal: no puede bajar de cero, pero no tiene límite hacia arriba.
+
+Finalmente, como en la sección 3 se encontró que los rendimientos tienen
+colas pesadas, es probable que estos intervalos sean más estrechos de lo
+que deberían, sobre todo en periodos de crisis.
+
+# 5. Estimación del modelo con parámetros anuales
+
+Utilizando los parámetros anualizados estimados para todo el periodo:
+
+- Construir la ecuación correspondiente de $\ln S_t$
+
+- Utilizar como valor inicial $S_0$ el último precio de 2025.
+
+- Estimar el precio esperado dentro de:
+
+  - 3 meses
+  - 6 meses
+  - 9 meses
+  - 12 meses
+
+- Incluir un intervalo de confianza al 95% para cada estimación.
+
+Aplicando el lema de Itô a $\ln S_t$ en el GBM se obtiene:
+
+$$d\ln S_t = \left(\mu - \tfrac{\sigma^2}{2}\right)dt + \sigma\, dW_t$$
+
+e integrando de $0$ a $T$:
+
+$$\ln S_T = \ln S_0 + \left(\mu - \tfrac{\sigma^2}{2}\right)T + \sigma W_T,
+\qquad W_T \sim N(0, T)$$
+
+Por lo tanto:
+
+$$\ln S_T \sim N\left(\ln S_0 + \left(\mu - \tfrac{\sigma^2}{2}\right)T,\; \sigma^2 T\right)$$
+
+con $T$ en años y $\mu$, $\sigma$ anualizados. El precio esperado y el
+intervalo de confianza al 95% son:
+
+$$E[S_T] = S_0 e^{\mu T}$$
+
+$$IC_{95\%}: \left[S_0 e^{(\mu - \sigma^2/2)T - 1.96\,\sigma\sqrt{T}},\;
+S_0 e^{(\mu - \sigma^2/2)T + 1.96\,\sigma\sqrt{T}}\right]$$
+
+```{r}
+m_anual     <- m_diaria * DIAS_COTIZACION            # mu - sigma^2/2 anual
+sigma_anual <- sigma_diaria * sqrt(DIAS_COTIZACION)
+mu_anual    <- m_anual + sigma_anual^2 / 2
+
+knitr::kable(data.frame(
+  'Parámetro' = c('m = mu - sigma^2/2 (anual)', 'sigma (anual)', 'mu (anual)'),
+  'Valor'     = c(m_anual, sigma_anual, mu_anual),
+  check.names = FALSE
+))
+```
+
+Con los parámetros estimados, la ecuación queda:
+
+$$\ln S_T = \ln(`r round(S0, 2)`) + `r round(m_anual, 4)`\,T + `r round(sigma_anual, 4)`\,W_T$$
+
+es decir,
+$\ln S_T \sim N\left(`r round(log(S0), 4)` + `r round(m_anual, 4)`\,T,\; `r round(sigma_anual^2, 4)`\,T\right)$.
+
+```{r}
+T_anios <- c(0.25, 0.50, 0.75, 1.00)
+
+gbm_anual <- data.frame(
+  'Horizonte'       = c('3 meses', '6 meses', '9 meses', '12 meses'),
+  'T (años)'        = T_anios,
+  'E[ln S_T]'       = log(S0) + m_anual * T_anios,
+  'Desv. ln S_T'    = sigma_anual * sqrt(T_anios),
+  'Precio esperado' = S0 * exp(mu_anual * T_anios),
+  'IC 95% inferior' = S0 * exp(m_anual * T_anios - z * sigma_anual * sqrt(T_anios)),
+  'IC 95% superior' = S0 * exp(m_anual * T_anios + z * sigma_anual * sqrt(T_anios)),
+  check.names = FALSE
+)
+gbm_anual$`Amplitud IC`      <- gbm_anual$`IC 95% superior` - gbm_anual$`IC 95% inferior`
+gbm_anual$`Amplitud / S0`    <- gbm_anual$`Amplitud IC` / S0
+
+knitr::kable(gbm_anual)
+```
+
+```{r}
+T_grid <- seq(0, 1, by = 1/252)
+cono <- data.frame(
+  T   = T_grid,
+  esp = S0 * exp(mu_anual * T_grid),
+  inf = S0 * exp(m_anual * T_grid - z * sigma_anual * sqrt(T_grid)),
+  sup = S0 * exp(m_anual * T_grid + z * sigma_anual * sqrt(T_grid))
+)
+
+ggplot(cono, aes(x = T)) +
+  geom_ribbon(aes(ymin = inf, ymax = sup), fill = 'steelblue', alpha = 0.25) +
+  geom_line(aes(y = esp), color = 'steelblue', linewidth = 1) +
+  geom_point(data = gbm_anual, aes(x = `T (años)`, y = `Precio esperado`)) +
+  labs(title = 'Precio esperado e IC 95% — GBM con parámetros anuales',
+       x = 'Horizonte (años)', y = 'Precio')
+```
+
+Primero, conviene notar que este modelo es el mismo que el de la sección
+4; lo único que cambia es la unidad de tiempo. Como
+$\mu_{anual} = 252\,\mu_{diaria}$ y
+$\sigma_{anual} = \sqrt{252}\,\sigma_{diaria}$, estimar el precio a 3
+meses es equivalente a estimarlo a 63 días con los parámetros diarios.
+
+La incertidumbre se amplifica de forma importante al alargar el
+horizonte. A 3 meses el intervalo de confianza va de
+`r round(gbm_anual[['IC 95% inferior']][1], 2)` a
+`r round(gbm_anual[['IC 95% superior']][1], 2)`, un rango equivalente a
+cerca de 80% del precio actual. A 12 meses va de
+`r round(gbm_anual[['IC 95% inferior']][4], 2)` a
+`r round(gbm_anual[['IC 95% superior']][4], 2)`, un rango de casi el
+doble del precio actual (cerca de 195%).
+
+En términos del logaritmo del precio, la desviación estándar crece con
+la raíz cuadrada del tiempo: pasa de 0.19 a 3 meses a 0.38 a 12 meses,
+es decir, al cuadruplicar el horizonte solo se duplica. Sin embargo, al
+regresar a precios con la función exponencial, el intervalo se abre cada
+vez más hacia arriba: a 12 meses el límite inferior está cerca de 44%
+por debajo del precio actual, mientras que el superior está cerca de
+151% por arriba.
+
+También se observa que el precio esperado
+(`r round(gbm_anual[['Precio esperado']][4], 2)` a 12 meses) es mayor
+que la mediana (`r round(S0 * exp(m_anual), 2)`). Esto significa que más
+de la mitad de las trayectorias terminan por debajo del valor esperado:
+unos pocos escenarios muy favorables jalan el promedio hacia arriba.
+Esta diferencia crece conforme aumenta el horizonte.
+
+Por último, suponer que $\mu$ y $\sigma$ se mantienen constantes durante
+un año completo es un supuesto fuerte. En la sección 2 se vio que la
+volatilidad anual varió entre 33% y 46% de un año a otro, y que el
+rendimiento varió de −21% a 58%. En horizontes largos, al riesgo propio
+del precio se suma el riesgo de que los parámetros cambien. Por eso, a
+12 meses el modelo es más útil para dimensionar el riesgo que para
+pronosticar un precio concreto.
+
+# 6. Discusión teórica
+
+Con base en todos los resultados obtenidos, desarrollar una discusión
+argumentada que responda:
+
+- ¿Los rendimientos siguen una distribución normal?
+- ¿El precio es normal o lognormal?
+- ¿Qué implicaciones tiene asumir normalidad en la modelación del
+  riesgo?
+- ¿Qué diferencias se observan entre los supuestos teóricos del GBM y
+  los datos reales?
+- ¿Qué riesgos puede introducir el supuesto de normalidad en la toma de
+  decisiones financieras?
+
+**¿Los rendimientos siguen una distribución normal?**
+
+No. La prueba de Jarque-Bera rechaza la normalidad con mucha claridad y
+la curtosis de los rendimientos es de aproximadamente 7.9, contra 3 de
+una normal. La diferencia se nota sobre todo en los extremos: el peor
+día de la muestra (29 de septiembre de 2008, en plena crisis financiera)
+la acción cayó cerca de 17% (un rendimiento logarítmico de −0.18), un
+movimiento de más de siete desviaciones estándar. Bajo una distribución
+normal, algo así sería prácticamente imposible, pero en los mercados
+reales sí ocurre. Los rendimientos se parecen a la normal en el centro,
+pero no en las colas.
+
+**¿El precio es normal o lognormal?**
+
+El precio no es normal: tiene una asimetría positiva clara y no puede
+tomar valores negativos, mientras que una variable normal sí podría. La
+distribución lognormal es una mejor descripción, porque respeta que el
+precio sea positivo y explica la cola larga hacia la derecha. Sin
+embargo, el logaritmo del precio tampoco pasó la prueba de normalidad.
+Parte de esto se debe a que la prueba no es adecuada para una serie con
+tendencia, pero también a que, si los rendimientos no son normales, el
+logaritmo del precio no puede ser exactamente normal. La conclusión es
+que la lognormal es una buena aproximación, pero solo eso: una
+aproximación.
+
+**¿Qué implicaciones tiene asumir normalidad en la modelación del
+riesgo?**
+
+La principal implicación es que se **subestima la probabilidad de
+pérdidas grandes**. Las medidas de riesgo basadas en la normal, como el
+valor en riesgo (VaR), funcionan razonablemente bien para pérdidas
+"comunes", pero fallan justo en los eventos que más importan. Por
+ejemplo, en la muestra hubo 26 días con movimientos mayores a cuatro
+desviaciones estándar, cuando la normal predice menos de uno en todo el
+periodo. Un modelo normal haría parecer que esos eventos casi nunca
+pasan, cuando en realidad aparecen en cada crisis.
+
+**¿Qué diferencias se observan entre los supuestos del GBM y los datos
+reales?**
+
+- *Normalidad:* el GBM supone rendimientos normales, pero los datos
+  muestran colas pesadas.
+- *Volatilidad constante:* el GBM supone una sola $\sigma$, pero la
+  volatilidad cambia mucho entre años (cerca de 22% en 2012, 46% en 2022
+  y 70% en 2008). Además, los días de alta volatilidad tienden a
+  aparecer agrupados, en épocas de crisis.
+- *Media constante:* el rendimiento promedio cambia mucho de un año a
+  otro, de −21% a 58% solo entre 2021 y 2025.
+- *Movimientos continuos:* el GBM supone que el precio cambia de forma
+  suave, pero en los datos hay saltos bruscos en un solo día.
+
+A pesar de esto, el GBM sí captura algunos rasgos importantes: el precio
+siempre es positivo, la incertidumbre crece con el horizonte de tiempo y
+la escala general del riesgo es correcta.
+
+**¿Qué riesgos puede introducir el supuesto de normalidad en la toma de
+decisiones financieras?**
+
+El riesgo más importante es sentirse más seguro de lo que realmente se
+está. Si un inversionista o una institución confía en intervalos
+calculados con la normal, puede tomar posiciones demasiado grandes,
+contratar coberturas insuficientes o mantener menos capital del
+necesario para soportar pérdidas. Estos errores no se notan en tiempos
+tranquilos, pero aparecen de golpe en las crisis, que es justamente
+cuando más daño hacen. La crisis de 2008 es un buen ejemplo: muchos
+modelos de riesgo basados en la normal consideraban "casi imposibles"
+pérdidas que terminaron ocurriendo.
+
+Por eso, aunque el GBM y la normalidad son útiles como punto de partida
+por su sencillez, en la práctica conviene complementarlos con
+herramientas que capturen mejor los extremos: distribuciones con colas
+más pesadas (como la t de Student), modelos con volatilidad que cambia
+en el tiempo (como GARCH), simulación con datos históricos y pruebas de
+estrés.
+
+# 7. Conclusiones
+
+GMEXICOB es una acción de riesgo alto, con una volatilidad anual cercana
+a 38% considerando todo el periodo. Entre 2021 y 2025 la volatilidad se
+mantuvo alrededor de 33%–36%, excepto en 2022, cuando subió a cerca de
+46% y el rendimiento fue negativo. Las pruebas estadísticas mostraron
+que ni los rendimientos, ni el precio, ni su logaritmo siguen una
+distribución normal; en particular, los rendimientos tienen colas
+pesadas. El rendimiento promedio diario es positivo pero muy pequeño y
+apenas significativo al 5%, lo que es consistente con un mercado
+eficiente en su forma débil. Con el GBM, el precio esperado crece poco
+en todos los horizontes, mientras que los intervalos de confianza se
+vuelven muy amplios: a 12 meses el rango posible equivale a casi el
+doble del precio actual.
+
+El GBM es una herramienta útil y sencilla: respeta que el precio sea
+positivo, muestra cómo crece la incertidumbre con el tiempo y da una
+buena idea del orden de magnitud del riesgo. Sin embargo, sus supuestos
+no se cumplen del todo: los rendimientos no son normales, la volatilidad
+no es constante y existen saltos bruscos. Por lo tanto, sus resultados
+deben verse como una aproximación, sobre todo en horizontes largos y en
+periodos de crisis, donde el modelo tiende a subestimar el riesgo.
+
+Este análisis muestra que el riesgo en los mercados financieros no es
+fijo: cambia con el entorno económico y se concentra en episodios de
+crisis. También deja claro que la incertidumbre crece rápidamente con el
+horizonte de tiempo, de modo que un precio esperado por sí solo dice
+poco si no se acompaña de su intervalo de confianza. Finalmente,
+aprendimos que los modelos teóricos son necesarios para medir el riesgo,
+pero hay que conocer sus limitaciones: suponer normalidad cuando los
+datos tienen colas pesadas puede llevar a decisiones demasiado confiadas
+justo en los momentos en que más importa ser prudente.
