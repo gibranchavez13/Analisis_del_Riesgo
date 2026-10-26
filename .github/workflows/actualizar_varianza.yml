@@ -38,6 +38,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add varianza_estimada.xlsx volatilidad_ewma.xlsx
+          git add varianza_estimada.xlsx volatilidad_ewma.xlsx volatilidad_ddewma.xlsx
           git diff --cached --quiet || git commit -m "Estimación con dato del $(TZ=America/Mexico_City date +'%Y-%m-%d')"
           git push
