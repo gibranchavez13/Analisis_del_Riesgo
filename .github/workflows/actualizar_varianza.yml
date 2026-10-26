@@ -31,6 +31,9 @@ jobs:
       - name: Ejecutar estimación EWMA
         run: Rscript estimar_ewma.R
 
+      - name: Ejecutar estimación DDEWMA     
+        run: Rscript estimar_ddewma.R
+
       - name: Commit y push
         run: |
           git config user.name "github-actions[bot]"
