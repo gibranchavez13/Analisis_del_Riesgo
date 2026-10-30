@@ -24,20 +24,30 @@ jobs:
           packages: |
             any::quantmod
             any::openxlsx
+            any::rugarch
 
-      - name: Ejecutar estimación
+      # Cada modelo corre aunque falle el anterior; si alguno falla, la corrida termina en rojo
+      - name: Ejecutar estimación (promedio móvil)
         run: Rscript estimar_varianza.R
 
       - name: Ejecutar estimación EWMA
+        if: success() || failure()
         run: Rscript estimar_ewma.R
 
-      - name: Ejecutar estimación DDEWMA     
+      - name: Ejecutar estimación DDEWMA
+        if: success() || failure()
         run: Rscript estimar_ddewma.R
 
+      - name: Ejecutar estimación GARCH
+        if: success() || failure()
+        run: Rscript estimar_garch.R
+
       - name: Commit y push
+        if: success() || failure()   # guarda los Excel que sí se actualizaron aunque un modelo falle
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add varianza_estimada.xlsx volatilidad_ewma.xlsx volatilidad_ddewma.xlsx
-          git diff --cached --quiet || git commit -m "Estimación con dato del $(TZ=America/Mexico_City date +'%Y-%m-%d')"
+          git add -- '*.xlsx'          # todos los Excel; no falla si alguno aún no existe
+          FECHA=$(Rscript -e 'cat(max(openxlsx::read.xlsx("varianza_estimada.xlsx")$fecha))')
+          git diff --cached --quiet || git commit -m "Estimación para el $FECHA"
           git push
