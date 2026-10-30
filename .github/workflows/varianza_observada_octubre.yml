@@ -1,0 +1,35 @@
+name: Varianza observada octubre
+
+on:
+  workflow_dispatch:           # solo se ejecuta a mano desde la pestaña Actions
+
+permissions:
+  contents: write
+
+jobs:
+  registrar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::quantmod
+            any::openxlsx
+
+      - name: Calcular la varianza observada de octubre
+        run: Rscript varianza_observada_octubre.R
+
+      - name: Commit y push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add varianza_observada_octubre.xlsx
+          git diff --cached --quiet || git commit -m "Varianza observada de octubre de 2026"
+          git pull --rebase
+          git push
