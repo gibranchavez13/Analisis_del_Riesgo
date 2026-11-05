@@ -1,0 +1,999 @@
+---
+title: "Grupo México, S.A.B. de C.V."
+subtitle: "Acción Serie B — GMEXICOB"
+lang: es                   # idioma español (para la división de palabras)
+output:
+  html_document:
+    theme: sandstone          
+    highlight: monochrome
+    code_folding: hide     # el código se oculta y se despliega con un clic
+    toc: true              # activa el índice
+    toc_depth: 2           # muestra secciones (#) y subsecciones (##)
+    toc_float:
+      collapsed: true      # las subsecciones se despliegan al navegar
+      smooth_scroll: true
+    #number_sections: true  # enumerar
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{css, echo=FALSE}
+/* Texto justificado en el cuerpo del documento (no afecta portada, índice, tablas ni código) */
+.section p,
+.section li {
+  text-align: justify;
+  hyphens: auto;
+  line-height: 1.6;
+}
+```
+
+<img src="https://companieslogo.com/img/orig/GMBXF_BIG-0ff7026f.png?t=1720244492"/>
+
+:::: {style="text-align: center;"}
+**INTEGRANTES**
+
+::: {style="text-align: center;"}
+Gibrán Chávez\
+Carlos Nieves\
+Pablo Tafolla\
+Carlos Romo
+:::
+
+**Materia:** Análisis del Riesgo\
+**Docente:** María del Rosario Ruiz Hernández\
+**Fecha:** 9 de noviembre de 2026
+::::
+
+# Introducción
+
+En esta cuarta entrega analizamos la volatilidad diaria de la acción de Grupo México, GMEXICOB.MX, para estudiar cómo cambia su riesgo a lo largo del tiempo. A partir del trabajo anterior, pasamos de una volatilidad constante a modelos que incorporan información reciente: promedios móviles, EWMA, Data Driven EWMA y ARCH/GARCH. El propósito es comparar su capacidad para representar movimientos del mercado y elegir una herramienta útil para dar seguimiento a la exposición financiera.
+
+Por decisión del equipo conservamos la descarga desde el 1 de enero de 2000, con información disponible hasta el 2 de octubre de 2026 y 6788 observaciones. La partición temporal es de 70/30, con entrenamiento hasta el 27 de agosto de 2018. Esta muestra es más amplia que la solicitada en las indicaciones y su fecha final rebasa el cierre de septiembre; por ello, describimos los resultados conforme al procedimiento efectivamente utilizado. Primero justificamos los parámetros y órdenes de los modelos; después evaluamos las estimaciones de los archivos del equipo para las 20 sesiones del 5 al 30 de octubre de 2026. Finalmente discutimos la reacción ante shocks, la estabilidad y los errores de estimación para fundamentar una elección financiera.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(quantmod); library(xts); library(dplyr); library(TTR); library(rugarch); library(forecast); library(zoo); library(lubridate)
+```
+
+```{r, echo=FALSE}
+clave <- 'GMEXICOB.MX'
+
+getSymbols(
+  clave,
+  from = '2000-01-01',
+  to = '2026-10-05'
+)
+
+precio <- Ad(get(clave)); names(precio) <- 'precio'
+rendimientos <- na.omit(dailyReturn(precio, type = 'log')); names(rendimientos) <- 'rendimiento'
+rendimientos_cuadrados <- rendimientos^2; names(rendimientos_cuadrados) <- 'rendimiento^2'
+
+head(cbind(precio, rendimientos))
+```
+
+```{r funciones_costo}
+rmse <- function(y, f){
+  sqrt(mean((y-f)^2, na.rm=TRUE))
+}
+mae <- function(y, f){
+  mean(abs(y-f), na.rm=TRUE)
+}
+qlike <- function(y, f){
+  mean((f/y) - log(f/y) - 1, na.rm=TRUE)
+}
+relativo <- function(y, f){
+  mean(abs(1 - (y/f)), na.rm=TRUE)
+}
+```
+
+```{r formato_latex, include=FALSE}
+# Números en notación científica para LaTeX (p. ej. 7.07\times10^{-6}) en las ecuaciones con R en línea
+sci_tex <- function(x, d = 2) {
+  e <- floor(log10(abs(x)))
+  sprintf('%.*f\\times10^{%d}', d, x / 10^e, e)
+}
+```
+
+# Modelos
+
+## Promedios móviles
+
+$$\hat{\sigma}^2_{t}(m) = \frac{1}{m} \sum_{i=1}^{m} r^2_{t-i}$$
+
+$$m \in \{5, 10, 20, 40\}$$
+
+### Estimar la volatilidad utilizando promedios móviles con los diferentes valores de $m$
+
+Utilizamos los promedios móviles como referencia por su sencillez: cada estimación de varianza promedia rendimientos cuadrados de una ventana reciente, y su raíz representa volatilidad diaria. Las ventanas de $m = 5, 10, 20$ y $40$ observaciones permiten contrastar distintos grados de memoria. Para evaluar la capacidad predictiva se emplea el promedio disponible al cierre anterior, evitando incorporar el rendimiento del mismo día que se quiere pronosticar.
+
+```{r}
+var_5d <- SMA(rendimientos_cuadrados, n=5)
+var_10d <- SMA(rendimientos_cuadrados, n=10)
+var_20d <- SMA(rendimientos_cuadrados, n=20)
+var_40d <- SMA(rendimientos_cuadrados, n=40)
+```
+
+```{r}
+n <- NROW(rendimientos_cuadrados)
+corte <- floor(0.70 * n)
+
+n; corte
+
+fecha_corte <- index(rendimientos_cuadrados)[corte]
+fecha_corte
+
+fecha_inicio <- index(rendimientos_cuadrados)[corte+1]
+fecha_inicio
+
+r_train <- rendimientos[2:corte]
+r_test <- rendimientos[(corte+1):n]
+
+r2_train <- rendimientos_cuadrados[2:corte]
+r2_test <- rendimientos_cuadrados[(corte+1):n]
+
+n_train <- NROW(r_train)
+n_test <- NROW(r_test)
+```
+
+```{r rolling-forecast-function}
+build_ma_test_forecasts <- function(r, r2, m, cut) {
+  
+  # 1. Promedio móvil con exactamente m observaciones
+  ma_t <- SMA(r2, n = m)
+  
+  # 2. El valor calculado en t-1 se usa como forecast para t.
+  # Usamos stats::lag para evitar el conflicto con dplyr::lag().
+  forecast_all <- stats::lag(ma_t, k = 1)
+  
+  # 3. Unir rendimiento, proxy realizado y forecast
+  combined <- merge(
+    r,
+    r2,
+    forecast_all
+  )
+  
+  # merge.xts() puede conservar los nombres internos de las series,
+  # por eso forzamos nombres explícitos DESPUÉS del merge.
+  colnames(combined) <- c(
+    "Return",
+    "Realized",
+    "Forecast"
+  )
+  
+  # 4. Eliminar observaciones incompletas
+  combined <- na.omit(combined)
+  
+  # 5. Mantener únicamente el periodo de evaluación común
+  test_start <- index(r2)[cut + 1]
+  combined <- combined[paste0(test_start, "/")]
+  
+  return(combined)
+}
+```
+
+```{r prueba}
+prueba_m5 <- build_ma_test_forecasts(r=rendimientos, r2=rendimientos_cuadrados, m=5, cut=corte)
+prueba_m10 <- build_ma_test_forecasts(r=rendimientos, r2=rendimientos_cuadrados, m=10, cut=corte)
+prueba_m20 <- build_ma_test_forecasts(r=rendimientos, r2=rendimientos_cuadrados, m=20, cut=corte)
+prueba_m40 <- build_ma_test_forecasts(r=rendimientos, r2=rendimientos_cuadrados, m=40, cut=corte)
+```
+
+```{r}
+RMSE <- data.frame(
+  'M5'=rmse(y=prueba_m5$Realized, f=prueba_m5$Forecast),
+  'M10'=rmse(y=prueba_m10$Realized, f=prueba_m10$Forecast),
+  'M=20'=rmse(y=prueba_m20$Realized, f=prueba_m20$Forecast),
+  'M=40'=rmse(y=prueba_m40$Realized, f=prueba_m40$Forecast)
+)
+MAE <- data.frame(
+  'M5'=mae(y=prueba_m5$Realized, f=prueba_m5$Forecast),
+  'M10'=mae(y=prueba_m10$Realized, f=prueba_m10$Forecast),
+  'M=20'=mae(y=prueba_m20$Realized, f=prueba_m20$Forecast),
+  'M=40'=mae(y=prueba_m40$Realized, f=prueba_m40$Forecast)
+)
+QLIKE <- data.frame(
+  'M5'=qlike(y=prueba_m5$Realized, f=prueba_m5$Forecast),
+  'M10'=qlike(y=prueba_m10$Realized, f=prueba_m10$Forecast),
+  'M=20'=qlike(y=prueba_m20$Realized, f=prueba_m20$Forecast),
+  'M=40'=qlike(y=prueba_m40$Realized, f=prueba_m40$Forecast)
+)
+RELATIVO <- data.frame(
+  'M5'=relativo(y=prueba_m5$Realized, f=prueba_m5$Forecast),
+  'M10'=relativo(y=prueba_m10$Realized, f=prueba_m10$Forecast),
+  'M=20'=relativo(y=prueba_m20$Realized, f=prueba_m20$Forecast),
+  'M=40'=relativo(y=prueba_m40$Realized, f=prueba_m40$Forecast)
+)
+```
+
+```{r}
+metricas <- rbind(RMSE = RMSE, MAE = MAE, QLIKE = QLIKE, RELATIVO = RELATIVO)
+metricas
+```
+
+### Determinar el valor óptimo de $m$ con base en criterios de ajuste y capacidad predictiva
+
+Elegimos $m = 40$ porque presenta el menor RMSE de varianza en la prueba histórica: $1.115500\times10^{-3}$, frente a $1.123521\times10^{-3}$ con $m = 20$. También obtiene el menor MAE, $5.812831\times10^{-4}$. La razón de la selección es priorizar el error cuadrático, que da mayor importancia a desviaciones grandes y resulta relevante cuando se busca evitar errores importantes en la medición del riesgo. La diferencia frente a la ventana de 20 días es pequeña y no demuestra una superioridad estadística.
+
+Con el valor óptimo $m = 40$, la varianza estimada para el día $t$ con información hasta $t-1$ es:
+
+$$\hat{\sigma}^2_{t} = \frac{1}{40} \sum_{i=1}^{40} r^2_{t-i}, \qquad \hat{\sigma}_{t} = \sqrt{\hat{\sigma}^2_{t}}$$
+
+La elección depende de la pérdida utilizada. La QLIKE de clase favorece $m = 20$, con 401.3519, frente a 405.1229 con $m = 40$. Conservamos la ventana de 40 por el criterio de RMSE adoptado en el trabajo y por su menor MAE, reconociendo este desacuerdo. Estos resultados corresponden al tramo histórico posterior al corte de entrenamiento; no deben confundirse con las métricas específicas de octubre.
+
+### Interpretar cómo cambia la estimación de la volatilidad conforme aumenta la ventana
+
+Al aumentar la ventana, cada observación tiene menos peso y la estimación se suaviza. Una ventana corta registra con mayor intensidad los cambios recientes, pero también fluctúa más por movimientos aislados. Con $m = 40$, un shock se reparte entre más observaciones y permanece en el cálculo durante más tiempo. Esto ayuda a mantener una referencia estable del riesgo, aunque puede retrasar el reconocimiento de un cambio de régimen. Además, cuando un rendimiento extremo sale de la ventana, el promedio puede disminuir de forma abrupta sin que haya ocurrido una mejora equivalente en las condiciones actuales del mercado.
+
+```{r fig.width=8, fig.height=5}
+limy <- c(0, max(var_5d, var_10d, var_20d, var_40d, na.rm = TRUE))
+plot(
+  rendimientos_cuadrados, 
+  type = 'l',
+  main = 'Varianza observada',
+  xlab = 'Tiempo',
+  ylab = 'Varianza',
+  col = 'darkred', 
+  ylim = limy
+)
+plot(
+  var_5d, 
+  type = 'l',
+  main = 'm=5',
+  xlab = 'Tiempo',
+  ylab = 'Varianza',
+  col = 'darkblue',
+  ylim = limy
+)
+plot(
+  var_10d, 
+  type = 'l',
+  main = 'm=10',
+  xlab = 'Tiempo',
+  ylab = 'Varianza',
+  col = 'darkblue', 
+  ylim = limy
+)
+plot(
+  var_20d, 
+  type = 'l',
+  main = 'm=20',
+  xlab = 'Tiempo',
+  ylab = 'Varianza',
+  col = 'darkblue',
+  ylim = limy
+)
+plot(
+  var_40d, 
+  type = 'l',
+  main = 'm=40',
+  xlab = 'Tiempo',
+  ylab = 'Varianza',
+  col = 'darkblue',
+  ylim = limy
+)
+```
+
+## EWMA
+
+$$\hat{\sigma}^2_t = (1 - \lambda)\, r^2_{t-1} + \lambda\, \hat{\sigma}^2_{t-1}, \qquad 0 < \lambda < 1$$
+
+### Estimar la volatilidad mediante el modelo EWMA
+
+Incluimos EWMA porque permite que la influencia de las observaciones disminuya gradualmente conforme envejecen. Su actualización combina la varianza anterior con el rendimiento cuadrado más reciente. Así se conserva memoria de episodios de riesgo sin imponer la salida abrupta de observaciones que ocurre en un promedio móvil.
+
+### Justificar la selección de $\lambda$
+
+```{r}
+log_lik_ewma <- function(r2, lambda) {
+  r2 <- as.numeric(r2)
+  n <- NROW(r2)
+  var_est <- rep(0, n)
+  var_est[1] <- r2[1]
+  for (i in 2:n) {
+    var_est[i] <- (1 - lambda) * r2[i-1] + lambda * var_est[i-1]
+  }
+  sum(-log(var_est) - r2 / var_est)   # usa el argumento r2 (antes usaba r2_train global)
+}
+```
+
+```{r}
+optimization <- optimize(
+  f = function(lambda) log_lik_ewma(r2_train, lambda),
+  interval = c(0.001, 0.9999),
+  maximum = TRUE
+)
+
+optimization
+```
+```{r}
+lambda_optimo <- optimization$maximum
+```
+
+El valor estimado es $\lambda = 0.9685$. La razón de su selección es que maximiza, sobre el entrenamiento, el objetivo equivalente a la log-verosimilitud normal, salvo constantes y un factor de escala. Por tanto, no se eligió minimizando directamente el RMSE de octubre. La normalidad funciona como supuesto de calibración y no como un resultado demostrado para los rendimientos.
+
+Con el valor óptimo $\lambda = `r round(lambda_optimo, 4)`$, la ecuación de EWMA queda:
+
+$$\hat{\sigma}^2_t = `r round(1 - lambda_optimo, 4)`\, r^2_{t-1} + `r round(lambda_optimo, 4)`\, \hat{\sigma}^2_{t-1}$$
+
+El parámetro es mayor que el referente diario de RiskMetrics, $\lambda = 0.94$. Esto implica más memoria y menor peso para la observación reciente que bajo ese referente. Preferimos el valor estimado porque adapta la ponderación a la muestra de GMEXICOB.MX; no contamos aquí con una comparación de errores de octubre contra 0.94 que permita atribuirle una ventaja predictiva comprobada. El valor de RiskMetrics sirve como referencia histórica, no como parámetro universal. [J.P. Morgan y Reuters (1996)](https://www.msci.com/documents/10199/5915b101-4206-4ba0-aee2-3449d5c7e95a).
+
+```{r}
+var_est_optima <- rep(0, n_test)
+var_est_optima[1] <- r2_test[1]
+for (i in 2:n_test) {
+  var_est_optima[i] <- (1-lambda_optimo)*r2_test[i-1]+lambda_optimo*var_est_optima[i-1]
+}
+```
+
+```{r}
+var_est_optima <- xts(var_est_optima, order.by = date(r2_test))
+```
+
+
+### Comparar su capacidad de respuesta ante cambios en la volatilidad respecto a los promedios móviles
+
+```{r}
+plot(r2_test, main="Observado")
+plot(var_est_optima, main="Estimado")
+```
+
+Frente a MA de 40 días, EWMA asigna más peso al último rendimiento cuadrado y permite que su efecto se reduzca progresivamente. Con los parámetros seleccionados esperamos una respuesta inicial algo mayor ante un shock, aunque esto no significa que EWMA sea más rápido que cualquier promedio móvil: las ventanas cortas pueden reaccionar con más intensidad. La ventaja operativa de EWMA es que actualiza el riesgo de manera gradual, sin depender de qué observación acaba de abandonar una ventana fija.
+
+
+## Data Driven EWMA
+
+$$\hat{\sigma}_{t+1} = \alpha\, Z_t + (1 - \alpha)\, \hat{\sigma}_{t}, \qquad 0 < \alpha < 1$$
+
+$$Z_t = \frac{|r_t - \bar{r}|}{\hat{\rho}}, \qquad \hat{\rho} = \operatorname{corr}\left(r_t - \bar{r},\ \operatorname{sign}(r_t - \bar{r})\right)$$
+
+### Obtener el $\alpha$ óptimo del modelo
+
+```{r}
+R_barra <- mean(r_train)
+rho <- as.numeric(cor(r_train - R_barra,
+            sign(r_train-R_barra)))
+rho
+```
+
+```{r}
+# En la prueba se usa la media de ENTRENAMIENTO (R_barra): la media de la prueba
+# sería información futura (igual que en estimar_ddewma.R).
+z_train <- abs(r_train - R_barra) / rho
+z_test <- abs(r_test - R_barra) / rho
+```
+
+```{r}
+alpha <- 0.15
+vol_est <- rep(0, n_train)
+vol_est[1] <- z_train[1]
+for (i in 2:n_train) {
+  vol_est[i] <- alpha * z_train[i-1] + (1 - alpha) * vol_est[i - 1]
+}
+```
+
+
+```{r}
+error_ddewma <- function(z, alpha){
+  z <- as.numeric(z)
+  n <- length(z)
+  vol_est <- rep(0, n)      # vector local (antes: vol_est[1] <- rep(0, n) sobre el vector global)
+  vol_est[1] <- z[1]
+  for (i in 2:n) {          # antes: 2:n_train (global)
+    vol_est[i] <- alpha * z[i-1] + (1 - alpha) * vol_est[i-1]
+  }
+  sum((z-vol_est)^2)
+}
+```
+```{r message=FALSE, warning=FALSE}
+optimization <- optimize(
+  f = function(alpha) error_ddewma(z_train, alpha),
+  interval = c(0.001, 0.9999),
+  maximum = FALSE
+)
+
+alpha_optimo <- optimization$minimum
+alpha_optimo
+```
+
+La optimización produce $\alpha = 0.0668$, mientras que la correlación estimada entre el rendimiento centrado y su signo es $\hat{\rho} = 0.6912$. La razón de la selección de $\alpha$ es minimizar la suma de errores cuadrados de pronóstico a un paso respecto a $Z_t$ en el entrenamiento. El parámetro $\rho$ ajusta la escala de las desviaciones absolutas para construir una referencia de volatilidad; no es una medida de persistencia como la suma de coeficientes de GARCH. El uso de desviaciones absolutas y la calibración mediante errores de pronóstico corresponden al planteamiento DDEWMA descrito por [Liang et al. (2020)](https://conferences.computer.org/compsac/pdfs/COMPSAC2020-7r2yh3mCdmuNATjWZbeuiI/730300a225/730300a225.pdf).
+
+Con los valores óptimos $\alpha = `r round(alpha_optimo, 4)`$, $\hat{\rho} = `r round(rho, 4)`$ y la media de entrenamiento $\bar{r} = `r sci_tex(R_barra, 3)`$, la recursión de la volatilidad queda:
+
+$$\hat{\sigma}_{t+1} = `r round(alpha_optimo, 4)`\, Z_t + `r round(1 - alpha_optimo, 4)`\, \hat{\sigma}_{t}, \qquad Z_t = \frac{|r_t - `r sci_tex(R_barra, 3)`|}{`r round(rho, 4)`}$$
+
+
+### Comparar este modelo con el EWMA
+
+```{r}
+vol_est_optima <- rep(0,n_test)
+vol_est_optima[1] <- z_test[1]
+for (i in 2:n_test) {
+  vol_est_optima[i] <- (alpha_optimo) * z_test[i-1] + (1 - alpha_optimo) * vol_est_optima[i-1]
+}
+
+vol_est_optima <- xts(vol_est_optima, order.by = date(z_test))
+```
+
+```{r}
+plot(sqrt(z_test^2), main ="Observado")
+plot(vol_est_optima, main = "Estimado")
+```
+
+DDEWMA estima directamente la desviación estándar, mientras que EWMA actualiza la varianza. Por ello, comparamos DDEWMA con la raíz de EWMA, o elevamos DDEWMA al cuadrado al evaluar varianzas. Además, la curva rotulada como observada en este apartado corresponde a $Z_t$, que incluye centrado y ajuste por $\rho$; no es exactamente el rendimiento absoluto sin ajustar utilizado en octubre.
+
+La razón para incluir DDEWMA es evaluar una alternativa calibrada con magnitudes absolutas, cuyo crecimiento ante extremos es lineal, frente al cuadrado utilizado por EWMA. Sin embargo, comparar solamente $\alpha$ con $1-\lambda$ no basta para ordenar la rapidez, porque actualizan escalas distintas. La tabla de octubre permitirá observar la respuesta efectiva bajo una referencia común. Una mayor sensibilidad puede ayudar a identificar cambios del riesgo, pero también mantener estimaciones elevadas cuando el movimiento intenso no continúa.
+
+## ARCH / GARCH
+
+$$\text{ARMA}(p, q): \quad r_t - \mu = \sum_{i=1}^{p} \phi_i\, (r_{t-i} - \mu) + \varepsilon_t + \sum_{j=1}^{q} \theta_j\, \varepsilon_{t-j}$$
+
+$$\varepsilon_t = \sigma_t\, \eta_t, \qquad \eta_t \sim N(0, 1)$$
+
+$$\text{ARCH}(p): \quad \sigma_t^2 = \omega + \sum_{i=1}^{p} \alpha_i\, \varepsilon_{t-i}^2$$
+
+$$\text{GARCH}(p, q): \quad \sigma_t^2 = \omega + \sum_{i=1}^{p} \alpha_i\, \varepsilon_{t-i}^2 + \sum_{i=1}^{q} \beta_i\, \sigma_{t-i}^2$$
+
+### Identificar y estimar el modelo ARCH o GARCH más adecuado
+
+$$\text{GARCH}(1, 1): \quad \sigma_t^2 = \omega + \alpha_1\, \varepsilon_{t-1}^2 + \beta_1\, \sigma_{t-1}^2, \qquad \omega > 0,\ \alpha_1, \beta_1 \ge 0,\ \alpha_1 + \beta_1 < 1$$
+
+```{r}
+modelo_media <- auto.arima(
+  as.numeric(r_train), 
+  d = 0,
+  stationary = TRUE,
+  seasonal = FALSE
+)
+
+summary(modelo_media)
+```
+```{r}
+orden_media <- arimaorder(modelo_media)
+p_media <- orden_media[1]
+q_media <- orden_media[3]
+arma_orden <- c(p_media, q_media)
+
+# Orden ARMA(p, q) de la ecuación de la media que se usa en todos los GARCH de este documento.
+# OJO: los scripts estimar_garch.R y pronostico_garch_octubre.R (y por tanto volatilidad_garch.xlsx
+# y pronostico_garch_octubre.xlsx) tienen fijo ARMA(2,1); hay que alinearlos con este orden.
+arma_orden
+```
+
+La búsqueda automática selecciona ARMA(4,0) con media distinta de cero; el resumen reporta AICc de -21777.75. La razón de utilizar este modelo es representar la dependencia de la media antes de estudiar la varianza de sus innovaciones, siguiendo la selección por criterios de información de la búsqueda automática de `forecast` ([Hyndman y Khandakar, 2008](https://www.jstatsoft.org/article/view/v027i03)). En este procedimiento se fijó $d = 0$ y se impuso estacionariedad, de modo que esta elección constituye un supuesto sobre los rendimientos, no una prueba adicional de estacionariedad. ARMA cumple una función auxiliar: modela el rendimiento esperado y no sustituye al modelo de volatilidad.
+
+Con los coeficientes estimados por `auto.arima` en el entrenamiento, la ecuación de la media ARMA(4,0) es:
+
+$$r_t - \hat{\mu} = `r sprintf('%.4f', coef(modelo_media)[['ar1']])`\,(r_{t-1} - \hat{\mu}) `r sprintf('%+.4f', coef(modelo_media)[['ar2']])`\,(r_{t-2} - \hat{\mu}) `r sprintf('%+.4f', coef(modelo_media)[['ar3']])`\,(r_{t-3} - \hat{\mu}) `r sprintf('%+.4f', coef(modelo_media)[['ar4']])`\,(r_{t-4} - \hat{\mu}) + \varepsilon_t, \qquad \hat{\mu} = `r sci_tex(coef(modelo_media)[['intercept']], 3)`$$
+
+```{r}
+residuos_media <- residuals(modelo_media)
+plot(
+  residuos_media,
+  type='l',
+  main='Innovaciones de la ecuación de la media',
+  xlab='Tiempo',
+  ylab='Épsilon'
+)
+```
+```{r}
+ArchLM <- function(x, lags = 20, demean = FALSE) {
+  
+  x <- na.omit(as.numeric(x))
+  
+  if (demean) {
+    x <- x - mean(x)
+  }
+  
+  mat <- embed(x^2, lags + 1)
+  
+  aux <- lm(
+    mat[, 1] ~ mat[, -1]
+  )
+  
+  R2 <- summary(aux)$r.squared
+  T_aux <- length(residuals(aux))
+  
+  statistic <- T_aux * R2
+  
+  p_value <- pchisq(
+    statistic,
+    df = lags,
+    lower.tail = FALSE
+  )
+  
+  out <- list(
+    statistic = statistic,
+    df = lags,
+    p.value = p_value
+  )
+  
+  return(out)
+}
+```
+
+```{r}
+ArchLM(residuos_media)
+```
+
+La prueba ARCH-LM sobre los residuos de la media arroja un estadístico de 729.6241 y un valor p de $1.18525\times10^{-141}$. La evidencia rechaza la ausencia de efectos ARCH y respalda que la varianza dependa de información pasada. Financieramente, esto es compatible con agrupamientos de movimientos intensos y tranquilos. La prueba justifica estimar volatilidad condicional, pero no determina por sí sola qué órdenes ARCH o GARCH conviene usar.
+```{r}
+modelos_candidatos <- tribble(
+  ~modelo, ~p, ~q,
+  'ARCH(1)', 1, 0,
+  'ARCH(2)', 2, 0,
+  'GARCH(1, 1)', 1, 1,
+  'GARCH(1, 2)', 1, 2,
+  'GARCH(2, 1)', 2, 1,
+  'GARCH(2, 2)', 2, 2
+)
+
+modelos_candidatos
+```
+
+```{r}
+# Parte 1: Definir especificaciones del modelo
+
+crear_spec <- function(p, q, arma_order) {
+  ugarchspec(
+    variance.model = list(
+      model = "sGARCH",
+      garchOrder = c(p, q)
+    ),
+    mean.model = list(
+      armaOrder = arma_order,
+      include.mean = TRUE
+    ),
+    distribution.model = "norm"
+  )
+}
+
+# Parte 2: Función para ajustar el modelo
+
+ajustar_modelo <- function(nombre, p, q) {
+  spec <- crear_spec(
+    p = p,
+    q = q,
+    arma_order = arma_orden
+  )
+  fit <- tryCatch(
+    ugarchfit(
+      spec = spec,
+      data = rendimientos[2:n],
+      out.sample = n_test,
+      solver = "hybrid"
+    ),
+    error = function(e) {
+      message(
+        "No se pudo estimar ",
+        nombre,
+        ": ",
+        e$message
+      )
+      return(NULL)
+    }
+  )
+  
+  return(fit)
+}
+```
+
+```{r}
+fit <- list()
+
+for (i in seq_len(6)) {
+  nombre <- modelos_candidatos$modelo[i]
+  fit[[nombre]] <- ajustar_modelo(
+    nombre = nombre,
+    p = modelos_candidatos$p[i],
+    q = modelos_candidatos$q[i]
+  )
+ 
+}
+```
+
+```{r}
+# Función de resumen del ajuste de modelos
+
+resumen_fit <- function(nombre, fit) {
+  
+  if (is.null(fit)) {
+    return(
+      data.frame(
+        model = nombre,
+        converged = FALSE,
+        logLik = NA_real_,
+        AIC = NA_real_,
+        BIC = NA_real_,
+        omega = NA_real_,
+        alpha_sum = NA_real_,
+        beta_sum = NA_real_,
+        persistence = NA_real_,
+        long_run_variance = NA_real_
+      )
+    )
+  }
+  
+  cf <- coef(fit)
+  ll <- as.numeric(likelihood(fit))
+  k <- length(cf)
+  n <- NROW(r_train)
+  
+  omega <- if ("omega" %in% names(cf)) {
+    unname(cf["omega"])
+  } else {
+    NA_real_
+  }
+  
+  alpha_names <- grep(
+    "^alpha",
+    names(cf),
+    value = TRUE
+  )
+  
+  beta_names <- grep(
+    "^beta",
+    names(cf),
+    value = TRUE
+  )
+  
+  alpha_sum <- if (length(alpha_names) > 0) {
+    sum(cf[alpha_names])
+  } else {
+    0
+  }
+  
+  beta_sum <- if (length(beta_names) > 0) {
+    sum(cf[beta_names])
+  } else {
+    0
+  }
+  
+  persistence <- alpha_sum + beta_sum
+  
+  long_run_variance <-
+    if (
+      is.finite(omega) &&
+      persistence < 1
+    ) {
+      omega / (1 - persistence)
+    } else {
+      NA_real_
+    }
+  
+  data.frame(
+    model = nombre,
+    converged = fit@fit$convergence == 0,
+    logLik = ll,
+    k = k,
+    AIC = -2 * ll + 2 * k,
+    BIC = -2 * ll + log(n) * k,
+    omega = omega,
+    alpha_sum = alpha_sum,
+    beta_sum = beta_sum,
+    persistence = persistence,
+    long_run_variance = long_run_variance
+  )
+}
+```
+
+```{r}
+tabla_modelos_arch_garch <- bind_rows(
+  lapply(
+    names(fit),
+    function(nombre) {
+      resumen_fit(
+        nombre,
+        fit[[nombre]]
+      )
+    }
+  )
+)
+
+tabla_modelos_arch_garch
+```
+
+Entre los candidatos estimados, el BIC favorece GARCH(1,1), con -22847.75, mientras que el AIC favorece GARCH(1,2), con -22902.18. Todos los ajustes reportan convergencia, pero eso no los vuelve igualmente adecuados: los ARCH presentan criterios menos favorables y añadir más términos a GARCH no siempre compensa la complejidad. La razón de seleccionar GARCH(1,1) es priorizar la parsimonia que refleja el BIC, conservando un término para el shock reciente y otro para la memoria de la varianza. El desacuerdo con AIC indica que la selección depende de cuánto se penaliza incorporar parámetros.
+
+
+```{r}
+fit[['GARCH(1, 1)']]
+```
+```{r}
+modelo_optimo <- fit[['GARCH(1, 1)']]
+w <- modelo_optimo@fit[['coef']][['omega']]
+alpha <- modelo_optimo@fit[['coef']][['alpha1']] 
+beta <- modelo_optimo@fit[['coef']][['beta1']]
+Var_LP <- w / (1 - alpha - beta)
+Vol_LP <- sqrt(Var_LP)
+Vol_LP * 100
+```
+```{r}
+est_fut <- ugarchforecast(
+  modelo_optimo,
+  n.ahead = 150
+)
+
+limy_fut <- range(c(as.numeric(est_fut@forecast[['sigmaFor']]), Vol_LP))
+limy_fut <- limy_fut + c(-1, 1) * 0.05 * diff(limy_fut)   # pequeño margen para que se vea la línea
+
+plot(
+  est_fut@forecast[['sigmaFor']],
+  type = 'l',
+  main = 'Estimaciones futuras de volatilidad',
+  xlab = 'Días',
+  ylab = 'Volatilidad',
+  ylim = limy_fut
+)
+
+abline(h=Vol_LP, lty=2, col='red')
+legend('bottomright', legend = c('Pronóstico de volatilidad', 'Volatilidad de largo plazo'),
+       col = c('black', 'red'), lty = c(1, 2), bty = 'n', cex = 0.8)
+```
+
+El pronóstico de la varianza revierte a la media hacia la varianza de largo plazo $V_L = \omega/(1 - \alpha - \beta)$:
+
+$$\hat{\sigma}^2_{t+n} = V_L + (\alpha + \beta)^n\left(\sigma^2_t - V_L\right)$$
+
+Aquí $\sigma^2_t$ es la varianza pronosticada para el primer día del horizonte, el día siguiente al último dato de entrenamiento, y $n = 0, 1, \ldots, 149$ cuenta los días a partir de ese pronóstico. Con los parámetros estimados, $V_L = `r sci_tex(Var_LP, 2)`$, $\alpha + \beta = `r sprintf('%.4f', alpha + beta)`$ y $\sigma^2_t = `r sci_tex(as.numeric(est_fut@forecast[['sigmaFor']])[1]^2, 2)`$:
+
+$$\hat{\sigma}^2_{t+n} = `r sci_tex(Var_LP, 2)` + (`r sprintf('%.4f', alpha + beta)`)^n\left(`r sci_tex(as.numeric(est_fut@forecast[['sigmaFor']])[1]^2, 2)` - `r sci_tex(Var_LP, 2)`\right)$$
+
+```{r}
+# Comprobación: la fórmula de reversión a la media reproduce el pronóstico de ugarchforecast
+sigma2_fut <- as.numeric(est_fut@forecast[['sigmaFor']])^2
+n_fut <- 0:(length(sigma2_fut) - 1)
+sigma2_reversion <- Var_LP + (alpha + beta)^n_fut * (sigma2_fut[1] - Var_LP)
+max(abs(sigma2_reversion - sigma2_fut))
+```
+
+```{r}
+pronostico_test <- ugarchforecast(
+  modelo_optimo,
+  n.ahead = 1,
+  n.roll = n_test - 1
+)
+
+varianza_test <- xts(as.numeric(pronostico_test@forecast[['sigmaFor']])^2, order.by = index(r_test))
+
+plot(
+  varianza_test,
+  type = 'l',
+  main = 'Varianza Estimada'
+)
+```
+
+```{r}
+plot(
+  r_test^2,
+  type = 'l',
+  main = 'Varianza observada'
+)
+```
+```{r}
+# Mismas funciones de costo que en promedios móviles (y = r^2, f = varianza estimada),
+# para que las métricas sean comparables entre modelos. Se guardan con otro nombre
+# para no sobreescribir las funciones rmse(), mae(), qlike() y relativo().
+errores <- as.numeric(r_test^2) - as.numeric(varianza_test)
+mse_garch  <- mean(errores^2)
+rmse_garch <- rmse(y = as.numeric(r_test^2), f = as.numeric(varianza_test))
+mae_garch  <- mae(y = as.numeric(r_test^2), f = as.numeric(varianza_test))
+qlike_garch <- qlike(y = as.numeric(r_test^2), f = as.numeric(varianza_test))
+relativo_garch <- relativo(y = as.numeric(r_test^2), f = as.numeric(varianza_test))
+mse_garch
+rmse_garch
+mae_garch
+qlike_garch
+relativo_garch
+```
+
+
+### Justificar la selección de órdenes del modelo
+
+En GARCH(1,1), $\alpha_1 = 0.048319$ recoge el efecto del shock reciente y $\beta_1 = 0.938179$ representa la continuidad de la varianza previa. La persistencia estimada es $\alpha_1 + \beta_1 = 0.986498$, cercana a la unidad, por lo que los efectos de un shock desaparecen lentamente. Bajo los supuestos del modelo, al ser menor que la unidad existe una varianza de largo plazo finita hacia la cual converge el pronóstico. Esta separación entre reacción y persistencia es la principal razón financiera para preferir GARCH frente a los ARCH de bajo orden considerados ([Bollerslev, 1986](https://public.econ.duke.edu/~boller/Published_Papers/joe_86.pdf)).
+
+Con los parámetros estimados, la ecuación de la varianza y la volatilidad de largo plazo son:
+
+$$\hat{\sigma}_t^2 = `r sci_tex(w, 2)` + `r sprintf('%.4f', alpha)`\, \varepsilon_{t-1}^2 + `r sprintf('%.4f', beta)`\, \hat{\sigma}_{t-1}^2$$
+
+$$\sigma_{LP} = \sqrt{\frac{\omega}{1 - \alpha_1 - \beta_1}} = \sqrt{\frac{`r sci_tex(w, 2)`}{1 - `r sprintf('%.4f', alpha)` - `r sprintf('%.4f', beta)`}} = `r sprintf('%.4f', Vol_LP)` \quad (`r sprintf('%.2f', 100 * Vol_LP)`\% \text{ diario})$$
+
+Los diagnósticos ponderados de Ljung-Box sobre residuos estandarizados y sus cuadrados, así como las pruebas ARCH-LM posteriores, no muestran evidencia de dependencia remanente en los rezagos reportados. Esto respalda la dinámica elegida, aunque no valida todos sus supuestos. El estadístico conjunto de Nyblom, 3.8069, supera los valores críticos impresos y advierte sobre estabilidad de parámetros; además, la prueba de bondad de ajuste de Pearson cuestiona la distribución normal. Por tanto, seleccionamos GARCH(1,1) como una representación parsimoniosa de la varianza, sin afirmar que describa por completo las colas o que sus parámetros permanezcan constantes durante toda la muestra.
+
+# Evaluación de modelos (5–30 de octubre 2026)
+
+La evaluación utiliza las estimaciones ya calculadas en los Excel del flujo de trabajo diario del equipo. Se comparan las mismas 20 fechas, del 5 al 30 de octubre de 2026, y se comprueba la correspondencia entre varianza y desviación estándar. MA utiliza $m = 40$, EWMA conserva $\lambda = 0.9685343$ y DDEWMA usa $\alpha = 0.06679819$. En las series a un paso, el pronóstico de cada sesión incorpora rendimientos conocidos hasta la sesión anterior; actualizar el estado del modelo no equivale a volver a elegir sus parámetros usando los resultados del día pronosticado.
+
+Hay dos diferencias importantes respecto a la estimación anterior. Los Excel de GARCH utilizan GARCH(1,1) normal con media ARMA(2,1), mientras que el Rmd selecciona ARMA(4,0); por tanto, los errores de octubre corresponden a la especificación de los archivos y no validan directamente el ajuste ARMA(4,0)-GARCH(1,1). Además, el GARCH estático proyecta todo el periodo desde el 2 de octubre, sin incorporar las nuevas observaciones durante el horizonte. Su comparación con los modelos a un paso describe dos modalidades con información distinta. Al utilizar ese origen y actualizar las series diarias, el ejercicio no reproduce un pronóstico congelado exclusivamente con información al cierre de septiembre.
+
+### Estimar la volatilidad diaria desde el 5 de octubre hasta el 30 de octubre 2026
+
+```{r datos_octubre}
+# Estimaciones del 5 al 30 de octubre LEÍDAS de los Excel del equipo (tabla de estimaciones diarias).
+# Los generan los scripts del workflow diario (estimar_varianza.R, estimar_ewma.R, estimar_ddewma.R,
+# estimar_garch.R y pronostico_garch_octubre.R) con los parámetros fijos de cada script:
+#   MA m = 40 | EWMA lambda = 0.9685343 | DDEWMA alpha = 0.06679819 (rho = 0.6911883, 70 % de entrenamiento)
+#   GARCH(1,1) normal con media ARMA(2,1), reestimado con el 70 % de entrenamiento.
+# Pueden diferir de los parámetros estimados en este documento (aquí la media del GARCH sale ARMA(4,0)).
+# 'fecha' = día para el que aplica la estimación (con información hasta el día hábil anterior).
+leer_excel_oct <- function(archivo) {
+  d <- as.data.frame(readxl::read_excel(archivo))
+  d$fecha <- as.Date(d$fecha)
+  fuera <- d$fecha < as.Date('2026-10-05') | d$fecha > as.Date('2026-10-30')
+  if (any(fuera)) {
+    message(archivo, ': se descartan ', sum(fuera), ' filas fuera del 5-30 oct (',
+            paste(format(d$fecha[fuera]), collapse = ', '), ')')
+  }
+  d <- d[!fuera, ]
+  d[order(d$fecha), ]
+}
+
+obs_excel     <- leer_excel_oct('varianza_observada_octubre.xlsx')  # observada: r^2
+ma_excel      <- leer_excel_oct('varianza_estimada.xlsx')           # MA (m = 40)
+ewma_excel    <- leer_excel_oct('volatilidad_ewma.xlsx')
+ddewma_excel  <- leer_excel_oct('volatilidad_ddewma.xlsx')
+garch_excel   <- leer_excel_oct('volatilidad_garch.xlsx')           # GARCH a un paso
+garch_h_excel <- leer_excel_oct('pronostico_garch_octubre.xlsx')    # GARCH estático a h pasos (desde el 2-oct)
+
+fechas_oct <- obs_excel$fecha
+n_oct <- length(fechas_oct)
+n_oct
+any(duplicated(fechas_oct))
+
+estimaciones_excel <- list(
+  MA = ma_excel, EWMA = ewma_excel, DDEWMA = ddewma_excel,
+  GARCH = garch_excel, GARCH_h = garch_h_excel
+)
+# Mismas fechas en todos los archivos y en la observada (sin huecos ni filas extra)
+sapply(estimaciones_excel, function(d) identical(d$fecha, fechas_oct))
+# Unidades: cada Excel trae varianza y desviación estándar; se comprueba varianza = desviación^2
+sapply(estimaciones_excel, function(d) max(abs(d$varianza_estimada - d$desviacion_estandar_estimada^2)))
+
+# El m del Excel de MA (estimar_varianza.R) es 40; se compara con el m elegido en este documento
+valores_m <- c(5, 10, 20, 40)
+m_optimo <- valores_m[which.min(as.numeric(metricas['RMSE', ]))]
+m_optimo
+m_optimo == 40
+```
+
+### Comparar la volatilidad estimada con una medida de referencia (por ejemplo, volatilidad realizada, que es la raíz de los rendimientos al cuadrado)
+
+```{r metricas_octubre}
+y_oct <- obs_excel$varianza_observada   # varianza observada (r^2) del Excel del equipo
+vol_real_oct <- sqrt(y_oct)             # volatilidad realizada = sqrt(r^2) = |r_t|
+
+# Varianzas estimadas (todas en varianza diaria, en decimal)
+pron_oct <- list(
+  'MA (m=40)' = ma_excel$varianza_estimada,
+  EWMA = ewma_excel$varianza_estimada,
+  DDEWMA = ddewma_excel$varianza_estimada,
+  GARCH = garch_excel$varianza_estimada,
+  'GARCH estático' = garch_h_excel$varianza_estimada
+)
+
+# Funciones de costo de clase sobre la varianza (y = r^2, f = varianza estimada)
+metricas_oct <- sapply(pron_oct, function(f) c(
+  RMSE = rmse(y = y_oct, f = f),
+  MAE = mae(y = y_oct, f = f),
+  QLIKE = qlike(y = y_oct, f = f),
+  RELATIVO = relativo(y = y_oct, f = f)
+))
+metricas_oct
+
+# Las mismas medidas en volatilidad: |r_t| contra sigma estimada
+metricas_oct_vol <- sapply(pron_oct, function(f) c(
+  RMSE_vol = rmse(y = vol_real_oct, f = sqrt(f)),
+  MAE_vol = mae(y = vol_real_oct, f = sqrt(f)),
+  sesgo_vol = mean(sqrt(f) - vol_real_oct),           # > 0: sobreestima, < 0: subestima
+  dias_sobre = sum(sqrt(f) > vol_real_oct)
+))
+metricas_oct_vol
+```
+
+```{r grafica_octubre, fig.width=9, fig.height=5}
+limy_oct <- c(0, max(vol_real_oct, sqrt(unlist(pron_oct))))
+plot(
+  fechas_oct, vol_real_oct,
+  type = 'h', lwd = 3, col = 'grey60',
+  main = 'Volatilidad realizada vs estimada (5-30 oct 2026)',
+  xlab = 'Fecha', ylab = 'Volatilidad diaria', ylim = limy_oct
+)
+colores <- c('darkblue', 'darkgreen', 'darkorange', 'darkred', 'purple')
+tipos <- c(1, 1, 1, 1, 2)
+for (j in seq_along(pron_oct)) {
+  lines(fechas_oct, sqrt(pron_oct[[j]]), type = 'b', pch = 16, col = colores[j], lty = tipos[j])
+}
+legend('topleft', legend = c('|r_t| observada', names(pron_oct)),
+       col = c('grey60', colores), lty = c(1, tipos), lwd = c(3, rep(1, 5)), bty = 'n', cex = 0.8)
+```
+
+En varianza, GARCH estático obtiene el menor RMSE, $7.150\times10^{-4}$, y el menor error relativo, 1.164. Entre los modelos actualizados a un paso, EWMA tiene el menor RMSE, $7.282\times10^{-4}$, casi idéntico al de MA, $7.284\times10^{-4}$. MA presenta el menor MAE, $4.812\times10^{-4}$, mientras que EWMA registra la menor QLIKE de clase, 176.65. GARCH a un paso y DDEWMA presentan RMSE de $7.318\times10^{-4}$ y $7.409\times10^{-4}$, respectivamente. Por tanto, ningún modelo domina todos los criterios y las diferencias son pequeñas.
+
+La QLIKE utilizada en clase calcula el promedio de $f_t/y_t-\log(f_t/y_t)-1$, donde $f_t$ es la varianza pronosticada y $y_t = r_t^2$. El cociente está invertido respecto a la forma habitual basada en $y_t/f_t$; por eso conservamos la denominación «QLIKE de clase» y no le atribuimos automáticamente las propiedades de robustez de la pérdida usual. Cuando el rendimiento observado es muy pequeño, este cociente puede aumentar considerablemente. La sensibilidad de la comparación a una referencia imperfecta es precisamente una preocupación estudiada por [Patton (2011)](https://public.econ.duke.edu/~ap172/Patton_vol_proxies_JoE_2011.pdf). Estos valores no son porcentajes ni probabilidades.
+
+Al comparar desviaciones estándar con $|r_t|$, GARCH estático también logra el menor RMSE, 0.01474, seguido por EWMA, 0.01484, y MA, 0.01485. GARCH a un paso obtiene 0.01506 y DDEWMA, 0.01543. Todos superan la referencia en 14 de los 20 días. Los sesgos medios son positivos: +0.00418 para MA, +0.00421 para EWMA, +0.00502 para DDEWMA, +0.00465 para GARCH a un paso y +0.00478 para GARCH estático. Esto describe una sobreestimación respecto al proxy diario, especialmente marcada en DDEWMA, pero no demuestra por sí mismo una sobreestimación de la volatilidad condicional verdadera.
+
+La distinción es importante: $|r_t|$ es una observación diaria de magnitud del rendimiento, no la desviación estándar condicional. Bajo una aproximación de media cero e innovaciones estandarizadas de forma estable, $E(|r_t|\mid\mathcal F_{t-1})=\rho\sigma_t$. El factor es $\rho = \sqrt{2/\pi} \approx 0.80$ bajo normalidad y la calibración DDEWMA de esta muestra arroja $\hat{\rho} \approx 0.69$. Así, incluso una estimación adecuada de $\sigma_t$ puede parecer elevada frente a $|r_t|$. Usamos $r_t^2$ como referencia complementaria de varianza, también bajo la aproximación de media cero, y no como una medición sin ruido. Con solo 20 sesiones y sin una prueba de diferencias predictivas, los resultados son descriptivos y no concluyentes.
+
+### Utilizar la tabla de estimaciones diarias construida en clase para contrastar valores observados vs. estimados
+
+```{r tabla_octubre}
+tabla_oct <- data.frame(
+  fecha = format(fechas_oct),
+  r2 = y_oct,
+  abs_r = vol_real_oct,
+  vol_MA = ma_excel$desviacion_estandar_estimada,
+  vol_EWMA = ewma_excel$desviacion_estandar_estimada,
+  vol_DDEWMA = ddewma_excel$desviacion_estandar_estimada,
+  vol_GARCH = garch_excel$desviacion_estandar_estimada,
+  vol_GARCH_h = garch_h_excel$desviacion_estandar_estimada
+)
+knitr::kable(tabla_oct, digits = c(0, 7, rep(5, 6)), row.names = FALSE,
+             col.names = c('Fecha', 'r_t^2', '|r_t|', 'MA (m=40)', 'EWMA', 'DDEWMA', 'GARCH', 'GARCH estático'))
+```
+
+La comparación diaria permite ubicar los errores. Del 5 al 8 de octubre todos los modelos quedan por encima del rendimiento absoluto; el 8 la referencia baja a 0.00061, mientras las estimaciones conservan el riesgo acumulado. El 9 ocurre el mayor movimiento del periodo, con $|r_t| = 0.04906$, y todos quedan por debajo. El 12, después de incorporar ese shock, las estimaciones a un paso aumentan aunque la referencia del nuevo día cae a 0.00041: DDEWMA alcanza 0.02163, GARCH 0.02117, MA 0.02063 y EWMA 0.02055. Este desfase muestra que reaccionan a información pasada y no anticipan la magnitud exacta de cada rendimiento.
+
+El 13 todos vuelven a superar el proxy; el 14 quedan ligeramente por debajo de 0.02069. La misma alternancia aparece del 15 al 19: todos superan la referencia el 15, quedan por debajo el 16 y la superan el 19. El 20 y el 21 también se mantienen por encima. Destaca la caída de MA de 0.02079 el 19 a 0.01856 el 20, compatible con el cambio de observaciones dentro de una ventana fija; las actualizaciones de EWMA son más graduales.
+
+El 22 aparece otro shock importante, $|r_t| = 0.04806$, que vuelve a exceder todos los pronósticos. El 23 DDEWMA sube a 0.02319, GARCH a 0.02202, EWMA a 0.02095 y MA a 0.02027, mientras el rendimiento absoluto ya es 0.01241. Todos siguen por encima del proxy el 26, quedan por debajo el 27 y lo superan el 28 y el 29. El 30, con $|r_t| = 0.03814$, nuevamente subestiman la magnitud observada. GARCH estático presenta la trayectoria más suave y se mantiene más cerca de los mayores picos por su nivel en esas fechas, pero esa cercanía no proviene de una reacción a los shocks ocurridos durante octubre.
+
+# Análisis e interpretación
+
+### ¿Qué modelo captura mejor los periodos de alta volatilidad?
+
+Si el criterio es la cercanía del pronóstico a los mayores movimientos observados, GARCH estático resulta más cercano en las sesiones del 9, 22 y 30 de octubre. Esta lectura es consistente con su menor RMSE global, pero todos los modelos quedan por debajo del proxy en esos días. Por tanto, no podemos afirmar que alguno haya anticipado satisfactoriamente los picos ni confundir un buen resultado mensual con una prueba específica de precisión durante crisis.
+
+Si entendemos «capturar» como incorporar el aumento de riesgo después de observar un shock, DDEWMA muestra la respuesta más intensa en los episodios del 9 y del 22, seguido por GARCH a un paso. GARCH ofrece además una interpretación explícita de la persistencia: un movimiento fuerte eleva la varianza y su efecto se disipa lentamente. La razón para distinguir estas respuestas es financiera: acertar el nivel de una sesión y reconocer que el riesgo puede permanecer elevado son tareas diferentes. La muestra de octubre permite describirlas, pero no identificar un ganador general para periodos prolongados de alta volatilidad.
+
+### ¿Qué modelo reacciona más rápidamente ante cambios en el mercado?
+
+DDEWMA presenta la mayor reacción inicial a los shocks destacados de octubre. Después del movimiento del 22, su volatilidad pasa de 0.01980 a 0.02319, mientras EWMA pasa de 0.01914 a 0.02095 y GARCH a un paso de 0.01947 a 0.02202. La razón para señalar DDEWMA es esta mayor variación observable al incorporar el mismo episodio, no una comparación aislada entre parámetros de distinta escala.
+
+En términos de oportunidad, todos los modelos a un paso incorporan la información en la siguiente sesión; DDEWMA no conoce el shock antes que los demás. Su reacción más intensa puede alertar sobre un aumento del riesgo y motivar una revisión de exposición, aunque también produce errores mayores si el mercado vuelve pronto a movimientos pequeños. EWMA reacciona de forma más moderada que DDEWMA y evita los cambios por salida de observaciones de MA. GARCH estático no reacciona a los nuevos shocks porque mantiene fijo el origen de pronóstico.
+
+### ¿Qué modelo presenta mayor estabilidad en sus estimaciones?
+
+La trayectoria más estable en octubre es GARCH estático: pasa gradualmente de 0.02013 al inicio a 0.02077 al final. La razón es que proyecta la dinámica desde un solo origen, sin incorporar sorpresas posteriores. Esta estabilidad puede servir como escenario de referencia, pero tiene el costo de no actualizar el riesgo ante nueva información.
+
+Entre las alternativas que sí se actualizan, EWMA ofrece una trayectoria gradual en los episodios examinados: responde menos que DDEWMA a los shocks y evita la caída abrupta observada en MA el 20 de octubre. MA de 40 días también suaviza la serie frente a ventanas menores, aunque la salida de observaciones puede alterar esa estabilidad. Esta comparación es descriptiva de la tabla y la gráfica; no se calculó una medida específica de variación entre pronósticos. Para gestionar riesgo, una curva estable es útil si reduce cambios innecesarios de exposición, pero pierde utilidad si oculta un aumento persistente de la incertidumbre.
+
+### ¿Qué modelo tiende a sobreestimar o subestimar la volatilidad?
+
+Frente a $|r_t|$, todos muestran sesgo positivo y sobreestiman en 14 de las 20 sesiones. DDEWMA presenta el mayor sesgo medio, +0.00502, y MA el menor, +0.00418; EWMA queda muy cerca de MA. La razón para identificar a DDEWMA como el más elevado en esta comparación es su mayor error medio con signo, acompañado por estimaciones que permanecen altas después de los shocks. Ningún modelo presenta subestimación en promedio frente a esta referencia, aunque todos quedan por debajo en las sesiones de mayor movimiento.
+
+Financieramente, una estimación alta en días tranquilos puede llevar a mantener una exposición más conservadora, mientras que quedarse corto durante shocks puede hacer que el riesgo observado exceda lo previsto. Sin embargo, la relación $E(|r_t|\mid\mathcal F_{t-1})=\rho\sigma_t$, bajo los supuestos indicados, impide interpretar el sesgo contra el valor absoluto como prueba definitiva de mala calibración. Por eso la decisión debe considerar también los errores de varianza y la reacción a los episodios, en lugar de elegir únicamente el modelo que más se acerca a los rendimientos pequeños.
+
+# Conclusión
+
+Los modelos representan de manera distinta la memoria y la actualización del riesgo de GMEXICOB.MX. MA de 40 días ofrece una referencia sencilla y el menor MAE de octubre, pero depende de la entrada y salida de observaciones de su ventana. EWMA actualiza gradualmente la varianza y consigue resultados muy cercanos a MA con una respuesta más continua. DDEWMA incorpora con intensidad los shocks observados, aunque esa reacción no se traduce en menores errores durante este periodo. GARCH(1,1) permite interpretar explícitamente la persistencia y es preferible por BIC entre los órdenes estimados, pero su versión a un paso no supera a EWMA en las pérdidas principales reportadas. El componente ARMA ayuda a separar la media de la variabilidad de las innovaciones.
+
+Desde una perspectiva financiera, elegiríamos EWMA con $\lambda = 0.9685$ para dar seguimiento diario al riesgo y apoyar la revisión de la exposición a esta acción. La razón es su combinación de sencillez, actualización con información reciente y desempeño: obtiene el menor RMSE entre las alternativas a un paso y la menor QLIKE de clase, con un sesgo frente al proxy muy cercano al de MA. La ventaja numérica respecto a MA es mínima; por eso la decisión se apoya también en que sus ponderaciones decaen gradualmente y evitan saltos por el vencimiento de una ventana fija. No lo elegimos por reaccionar más que todos, sino por ofrecer una respuesta moderada y operativamente fácil de interpretar.
+
+GARCH estático obtiene el menor RMSE global, por lo que es una referencia valiosa, aunque su falta de actualización durante octubre limita su uso para el seguimiento diario que buscamos. La recomendación de EWMA es provisional: se basa en una evaluación corta, un proxy ruidoso, una muestra que conserva las fechas del equipo y especificaciones de media distintas entre el Rmd y los Excel de GARCH. Los diagnósticos del ajuste normal también aconsejan cautela al extrapolar a movimientos extremos. Para sostener la elección sería necesario contrastarla en nuevos periodos con un protocolo homogéneo. La volatilidad estimada informa sobre la magnitud de la incertidumbre, sin anticipar por sí sola la dirección del precio.
+
+# Referencias
+
+J.P. Morgan & Reuters. (1996). *RiskMetrics—Technical document* (4.ª ed.). [Documento técnico](https://www.msci.com/documents/10199/5915b101-4206-4ba0-aee2-3449d5c7e95a).
+
+
+```{=html}
+<script>
+// Botones para mostrar/ocultar el código en español
+// (se ejecuta al terminar de cargar, cuando R Markdown ya creó los botones)
+$(window).on('load', function () {
+  var textos = {'Show': 'Mostrar código', 'Hide': 'Ocultar código', 'Code': 'Código'};
+  function traducir(span) {
+    var actual = $(span).text();
+    if (textos[actual]) $(span).text(textos[actual]);
+  }
+  $('.code-folding-btn span, .dropdown-toggle span:first-child').each(function () {
+    traducir(this);
+    var span = this;
+    new MutationObserver(function () { traducir(span); })
+      .observe(span, {childList: true, characterData: true, subtree: true});
+  });
+  $('#rmd-show-all-code').text('Mostrar todo el código');
+  $('#rmd-hide-all-code').text('Ocultar todo el código');
+});
+</script>
+```
